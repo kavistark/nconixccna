@@ -1,0 +1,73 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Dashboard</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Overview</span>
+{% endblock %}
+
+{% block content %}
+<h2 class="dashboard-title">Welcome to CCNA Exam Prep</h2>
+<p class="dashboard-subtitle">Covering all 63 core exam topics for Cisco Certified Network Associate (200-301).</p>
+
+<!-- Metrics Dashboard -->
+<div class="metrics-grid" style="margin-top: 30px;">
+  <div class="metric-card">
+    <div class="metric-header">
+      <span>TOTAL PROGRESS</span>
+      <i data-lucide="trending-up"></i>
+    </div>
+    <div class="metric-value">{{ progress_percent }}%</div>
+    <div class="metric-desc">{{ completed_steps }} of {{ total_steps }} pages completed</div>
+  </div>
+  
+  <div class="metric-card success-metric">
+    <div class="metric-header">
+      <span>QUIZ AVERAGE</span>
+      <i data-lucide="award"></i>
+    </div>
+    <div class="metric-value">{{ avg_score }}%</div>
+    <div class="metric-desc">Taken {{ quizzes_taken }} topic quizzes</div>
+  </div>
+  
+  <div class="metric-card warning-metric">
+    <div class="metric-header">
+      <span>STUDY LOG</span>
+      <i data-lucide="book-open"></i>
+    </div>
+    <div class="metric-value">{{ completed_lessons }}</div>
+    <div class="metric-desc">Lessons read out of 63</div>
+  </div>
+</div>
+
+<!-- Domain Readiness List -->
+<h3 class="domain-section-title" style="margin-top: 40px; margin-bottom: 20px;">CCNA domain readiness</h3>
+<div class="domains-grid">
+  {% for domain in domain_readiness %}
+    <div class="domain-card">
+      <div class="domain-info">
+        <span class="domain-name">{{ domain.name }}</span>
+        <span class="domain-score">{{ domain.progress_percent }}% Ready</span>
+      </div>
+      <div class="domain-progress-bar">
+        <div class="domain-progress-fill" style="width: {{ domain.progress_percent }}%"></div>
+      </div>
+      <div class="domain-meta">
+        <span>{{ domain.completed_steps }}/{{ domain.total_steps }} steps</span>
+        <span>Quiz Avg: {{ domain.quiz_avg }}%</span>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Actions Container -->
+<div style="margin-top: 40px; display: flex; gap: 16px; flex-wrap: wrap;">
+  <a href="{% url 'mock_exam_setup' %}" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
+    <i data-lucide="clipboard-list" style="width:16px; height:16px; margin-right:8px;"></i>
+    Start Full Mock Exam
+  </a>
+  <a href="{% url 'lesson' resume_id %}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary);">
+    Resume Studying
+  </a>
+</div>
+{% endblock %}

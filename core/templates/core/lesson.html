@@ -1,0 +1,84 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">{{ topic.domain.name }}</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Lesson {{ topic.id }}: {{ topic.title }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="lesson-card">
+  <span class="lesson-meta-tag">{{ topic.domain.name }}</span>
+  <h2 class="lesson-title">Chapter {{ topic.id }}: {{ topic.title }}</h2>
+  
+  <div class="objectives-box">
+    <h4><i data-lucide="target"></i> Exam Objectives Covered</h4>
+    <ul class="objectives-list">
+      {% for obj in topic.objectives %}
+        <li>{{ obj }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="lesson-body" style="margin-top: 30px; line-height: 1.7;">
+    {{ lesson_html|safe }}
+  </div>
+
+  <div class="lesson-actions" style="margin-top: 40px; display: flex; gap: 16px; flex-wrap: wrap;">
+    {% if prev_id %}
+      <a href="{% url 'lesson' prev_id %}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary);">
+        <i data-lucide="chevron-left" style="width: 16px; height: 16px; margin-right: 6px;"></i> Previous
+      </a>
+    {% else %}
+      <button class="btn" disabled style="opacity: 0.5;">
+        <i data-lucide="chevron-left" style="width: 16px; height: 16px; margin-right: 6px;"></i> Previous
+      </button>
+    {% endif %}
+    
+    <button class="btn {% if progress.lesson_completed %}btn-success{% else %}btn-success-outline{% endif %}" id="completeBtn" style="min-width: 160px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+      <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> 
+      <span id="completeText">{% if progress.lesson_completed %}Completed ✔{% else %}Mark Completed{% endif %}</span>
+    </button>
+    
+    <a href="{% url 'quiz' topic.id %}" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
+      Practice Quiz <i data-lucide="arrow-right" style="width: 16px; height: 16px; margin-left: 6px;"></i>
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const completeBtn = document.getElementById("completeBtn");
+    const completeText = document.getElementById("completeText");
+    
+    completeBtn.addEventListener("click", () => {
+      // Avoid resending if already complete
+      if (completeText.innerText.trim() === "Completed ✔") return;
+      
+      const csrfToken = '{{ csrf_token }}';
+      fetch("{% url 'lesson_complete' topic.id %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          completeBtn.className = "btn btn-success";
+          completeText.innerText = "Completed ✔";
+          // Also update the sidebar checks dynamically
+          const sidebarCheck = document.querySelector("#nav-lesson-{{ topic.id }}");
+          if (sidebarCheck) {
+            sidebarCheck.classList.add("completed");
+          }
+        }
+      })
+      .catch(err => console.error(err));
+    });
+  });
+</script>
+{% endblock %}

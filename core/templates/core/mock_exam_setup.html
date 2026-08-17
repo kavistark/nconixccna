@@ -1,0 +1,32 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Exam Center</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Mock Exam Setup</span>
+{% endblock %}
+
+{% block content %}
+<div class="exam-setup-card" style="text-align: center; max-width: 600px; margin: 40px auto; padding: 40px 24px;">
+  <i data-lucide="shield-alert" style="width: 48px; height: 48px; color: var(--accent); margin-bottom: 16px;"></i>
+  <h2 class="exam-setup-title">Simulated CCNA Practice Exam</h2>
+  <p class="exam-setup-desc" style="max-width: 480px; margin: 0 auto 24px; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+    This tool constructs a simulated CCNA exam pulling questions randomly across all 63 chapters. Test your knowledge in a realistic timed session.
+  </p>
+  
+  <form method="GET" action="{% url 'mock_exam_active' %}">
+    <div class="form-group" style="max-width: 320px; margin: 0 auto 24px; text-align: left;">
+      <label for="examSize" style="display: block; font-weight: 500; margin-bottom: 8px;">Select Exam Size</label>
+      <select name="size" id="examSize" class="form-control" style="width: 100%;">
+        <option value="15">Quick Quiz (15 Questions)</option>
+        <option value="30">Medium Test (30 Questions)</option>
+        <option value="60">Full Simulation (60 Questions)</option>
+      </select>
+    </div>
+    
+    <button type="submit" class="btn btn-primary btn-lg" style="font-weight: 600; padding: 12px 28px;">
+      Generate Exam
+    </button>
+  </form>
+</div>
+{% endblock %}

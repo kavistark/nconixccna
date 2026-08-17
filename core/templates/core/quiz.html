@@ -1,0 +1,179 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">{{ topic.domain.name }}</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Quiz {{ topic.id }}: {{ topic.title }}</span>
+{% endblock %}
+
+{% block content %}
+<div id="quizContainer">
+  <!-- Interactive Quiz Renders Here via JS -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const questions = {{ questions_json|safe }};
+    const quizContainer = document.getElementById("quizContainer");
+    
+    let currentIndex = 0;
+    let selectedAnswer = null;
+    let correctCount = 0;
+
+    function renderQuestion() {
+      if (questions.length === 0) {
+        quizContainer.innerHTML = `<p class="dashboard-subtitle">No questions available for this chapter.</p>`;
+        return;
+      }
+
+      const q = questions[currentIndex];
+      const isLastQuestion = currentIndex === questions.length - 1;
+
+      quizContainer.innerHTML = `
+        <div class="quiz-card">
+          <div class="quiz-header">
+            <div class="quiz-progress-text">QUESTION ${currentIndex + 1} OF ${questions.length}</div>
+            <h2 class="lesson-title">${q.question_text ? q.question_text : '{{ topic.title }} Practice Quiz'}</h2>
+          </div>
+
+          <div class="question-card" style="margin-top: 20px;">
+            <p class="question-text" style="font-size: 16px; font-weight: 500; margin-bottom: 20px;">${q.question}</p>
+            <div class="options-list" style="display: flex; flex-direction: column; gap: 12px;">
+              ${q.options.map((opt, idx) => `
+                <div class="option-item" data-index="${idx}" style="cursor: pointer; padding: 14px 16px; border: 1px solid var(--border-color); border-radius: var(--radius); display: flex; align-items: center; gap: 12px; transition: all 0.2s ease;">
+                  <span class="option-letter" style="background-color: var(--bg-app); border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 13px;">${String.fromCharCode(65 + idx)}</span>
+                  <span>${opt}</span>
+                </div>
+              `).join("")}
+            </div>
+            
+            <div class="explanation-box" id="explanationBox" style="display:none; margin-top: 24px; padding: 16px; border-radius: var(--radius); border-left: 4px solid var(--accent); background-color: var(--bg-app);">
+              <div class="explanation-title" id="explanationTitle" style="font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;"></div>
+              <p class="explanation-text" id="explanationText" style="font-size: 14px; line-height: 1.5; color: var(--text-secondary);">${q.explanation}</p>
+            </div>
+          </div>
+
+          <div class="lesson-actions" style="margin-top: 30px; display: flex; gap: 16px; justify-content: space-between;">
+            <a href="{% url 'lesson' topic.id %}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary);">
+              <i data-lucide="book-open" style="width: 16px; height: 16px; margin-right: 6px;"></i> Back to Lesson
+            </a>
+            <button class="btn btn-primary" id="submitAnswerBtn" disabled style="min-width: 140px;">
+              Check Answer
+            </button>
+          </div>
+        </div>
+      `;
+
+      lucide.createIcons();
+
+      const optionItems = quizContainer.querySelectorAll(".option-item");
+      optionItems.forEach(item => {
+        item.addEventListener("click", () => {
+          // If already checked, disable choice changes
+          if (document.getElementById("explanationBox").style.display === "block") return;
+          
+          optionItems.forEach(i => {
+            i.style.borderColor = "var(--border-color)";
+            i.style.backgroundColor = "transparent";
+          });
+          item.style.borderColor = "var(--accent)";
+          item.style.backgroundColor = "rgba(0, 168, 204, 0.05)";
+          
+          selectedAnswer = parseInt(item.getAttribute("data-index"));
+          document.getElementById("submitAnswerBtn").removeAttribute("disabled");
+        });
+      });
+
+      const submitBtn = document.getElementById("submitAnswerBtn");
+      let isChecked = false;
+      submitBtn.addEventListener("click", () => {
+        if (!isChecked) {
+          const isCorrect = selectedAnswer === q.correctIndex;
+          if (isCorrect) correctCount++;
+
+          // Show explanation
+          const expBox = document.getElementById("explanationBox");
+          const expTitle = document.getElementById("explanationTitle");
+          
+          expBox.style.display = "block";
+          if (isCorrect) {
+            expTitle.innerHTML = `<i data-lucide="check-circle" style="color:var(--success); width:18px; height:18px;"></i> Correct!`;
+            expTitle.style.color = "var(--success)";
+            optionItems[selectedAnswer].style.borderColor = "var(--success)";
+            optionItems[selectedAnswer].style.backgroundColor = "rgba(46, 204, 113, 0.08)";
+          } else {
+            expTitle.innerHTML = `<i data-lucide="alert-circle" style="color:var(--error); width:18px; height:18px;"></i> Incorrect`;
+            expTitle.style.color = "var(--error)";
+            optionItems[selectedAnswer].style.borderColor = "var(--error)";
+            optionItems[selectedAnswer].style.backgroundColor = "rgba(231, 76, 60, 0.08)";
+            optionItems[q.correctIndex].style.borderColor = "var(--success)";
+            optionItems[q.correctIndex].style.backgroundColor = "rgba(46, 204, 113, 0.08)";
+          }
+          lucide.createIcons();
+
+          // Change button to Next Question or Finish
+          submitBtn.innerText = isLastQuestion ? "Finish Quiz" : "Next Question";
+          isChecked = true;
+        } else {
+          if (isLastQuestion) {
+            finishQuiz();
+          } else {
+            currentIndex++;
+            selectedAnswer = null;
+            renderQuestion();
+          }
+        }
+      });
+    }
+
+    function finishQuiz() {
+      const scorePercent = Math.round((correctCount / questions.length) * 100);
+      
+      // Save score via POST API
+      const csrfToken = '{{ csrf_token }}';
+      fetch("{% url 'quiz_submit' topic.id %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({ score: scorePercent })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          // Dynamic sidebar completion update
+          const sidebarCheck = document.querySelector("#nav-quiz-{{ topic.id }}");
+          if (sidebarCheck) {
+            sidebarCheck.classList.add("completed");
+          }
+        }
+      })
+      .catch(err => console.error(err));
+
+      quizContainer.innerHTML = `
+        <div class="quiz-card" style="text-align:center; padding: 40px 20px;">
+          <h2 class="lesson-title" style="margin-bottom:16px;">Quiz Completed!</h2>
+          <div style="font-size: 64px; font-weight: 800; color: ${scorePercent >= 70 ? 'var(--success)' : 'var(--error)'}; margin-bottom: 16px;">
+            ${scorePercent}%
+          </div>
+          <p class="dashboard-subtitle" style="margin-bottom:32px;">You answered ${correctCount} of ${questions.length} questions correctly.</p>
+          
+          <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+            <a href="{% url 'lesson' topic.id %}" class="btn" style="text-decoration: none;">Study Lesson Again</a>
+            {% if topic.id < 63 %}
+              <a href="{% url 'lesson' topic.id|add:1 %}" class="btn btn-primary" style="text-decoration: none;">Next Chapter</a>
+            {% else %}
+              <a href="{% url 'dashboard' %}" class="btn btn-primary" style="text-decoration: none;">Return to Dashboard</a>
+            {% endif %}
+          </div>
+        </div>
+      `;
+    }
+
+    renderQuestion();
+  });
+</script>
+{% endblock %}

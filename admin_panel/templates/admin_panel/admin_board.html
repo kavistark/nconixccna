@@ -1,0 +1,552 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Admin Panel</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Live Whiteboard</span>
+{% endblock %}
+
+{% block content %}
+<style>
+  /* Immersive Full-Screen Layout Overrides */
+  body, html {
+    overflow: hidden !important;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .workspace {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    background-color: var(--bg-app) !important;
+    position: relative !important;
+  }
+
+  .header {
+    display: none !important;
+  }
+
+  .viewport {
+    padding: 0 !important;
+    margin: 0 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .board-page-container {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: none !important;
+  }
+
+  /* Reset boardDrawer inside page flow */
+  #boardDrawer {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    right: 0 !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    z-index: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    transition: none !important;
+  }
+
+  .board-canvas-wrapper {
+    flex: 1 !important;
+    background-color: var(--bg-app) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin-top: 0 !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #whiteboardCanvas {
+    display: block !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    aspect-ratio: 4 / 3 !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+  }
+
+  /* Floating Glassmorphic Toolbar */
+  .board-toolbar {
+    position: absolute !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 500 !important;
+    background: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    padding: 8px 16px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    pointer-events: auto !important;
+    width: max-content !important;
+    max-width: 90vw !important;
+  }
+
+  /* Toolbar buttons styling overrides */
+  .tool-btn {
+    border-radius: 8px !important;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s, transform 0.1s;
+    border: 1px solid transparent !important;
+  }
+
+  .tool-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .tool-btn.active {
+    background-color: var(--accent) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.4) !important;
+  }
+
+  .color-swatch {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50% !important;
+    border: 2px solid transparent !important;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s;
+  }
+
+  .color-swatch:hover {
+    transform: scale(1.15);
+  }
+
+  .color-swatch.active {
+    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent) !important;
+    transform: scale(1.2) !important;
+  }
+
+  /* Live pulse badge */
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+  }
+
+  /* Fullscreen styles */
+  .board-canvas-wrapper:fullscreen {
+    padding: 20px;
+    background-color: #0e1322 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .board-canvas-wrapper:fullscreen #whiteboardCanvas {
+    max-height: 100vh !important;
+    width: auto !important;
+  }
+</style>
+
+<div class="board-page-container">
+  <!-- Top-Left Navigation Widget -->
+  <div style="position: absolute; top: 20px; left: 24px; z-index: 500; display: flex; align-items: center; gap: 12px; pointer-events: auto;">
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary" style="padding: 8px 16px; border-radius: 10px; font-weight: 600; display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-secondary); text-decoration: none; box-shadow: var(--shadow-md); transition: background-color 0.2s;">
+      <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+      <span>Exit Board</span>
+    </a>
+    <div style="color: var(--text-primary); font-family: var(--font-heading); font-weight: 700; font-size: 16px; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+      CCNA <span class="accent-text">Board</span>
+    </div>
+  </div>
+
+  <!-- Bottom-Left Status indicators -->
+  <div style="position: absolute; bottom: 20px; left: 24px; z-index: 500; display: flex; align-items: center; gap: 12px; pointer-events: none;">
+    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 20px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(239,68,68,0.2);">
+      <span style="display: inline-block; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+      <span style="color: #ef4444; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; line-height: 1;">LIVE</span>
+    </div>
+    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 20px; padding: 6px 14px; display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-md);">
+      <i data-lucide="wifi" style="width: 14px; height: 14px; color: var(--success);"></i>
+      <span id="boardConnectionStatus" style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">Connecting...</span>
+    </div>
+  </div>
+
+  <!-- Bottom-Right Zoom status / View Controls -->
+  <div style="position: absolute; bottom: 20px; right: 24px; z-index: 500; display: flex; align-items: center; gap: 8px; pointer-events: auto;">
+    <button class="tool-btn" id="zoomOutBtn" title="Zoom Out" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;"><i data-lucide="zoom-out" style="width: 16px; height: 16px;"></i></button>
+    <div id="zoomPercentIndicator" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); min-width: 60px; text-align: center; box-shadow: var(--shadow-md); user-select: none;">100%</div>
+    <button class="tool-btn" id="zoomInBtn" title="Zoom In" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;"><i data-lucide="zoom-in" style="width: 16px; height: 16px;"></i></button>
+    <button class="tool-btn" id="zoomResetBtn" title="Reset View" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: var(--accent);"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i></button>
+  </div>
+
+  <!-- Main Container -->
+  <div id="boardDrawer">
+    <!-- Floating Glassmorphic Top Toolbar -->
+    <div class="board-toolbar">
+      <!-- Drawing Tools -->
+      <div class="toolbar-group">
+        <button class="tool-btn active" data-tool="pen" title="Pen"><i data-lucide="pencil"></i></button>
+        <button class="tool-btn" data-tool="pencil" title="Pencil"><i data-lucide="edit-2"></i></button>
+        <button class="tool-btn" data-tool="brush" title="Brush"><i data-lucide="brush"></i></button>
+        <button class="tool-btn" data-tool="marker" title="Highlighter Marker"><i data-lucide="highlighter"></i></button>
+        <button class="tool-btn" data-tool="eraser" title="Eraser"><i data-lucide="eraser"></i></button>
+        <button class="tool-btn" data-tool="text" title="Text Tool"><i data-lucide="type"></i></button>
+      </div>
+      
+      <!-- Shapes Group -->
+      <div class="toolbar-group" style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px;">
+        <button class="tool-btn" data-tool="line" title="Line"><i data-lucide="minus"></i></button>
+        <button class="tool-btn" data-tool="arrow" title="Arrow"><i data-lucide="arrow-up-right"></i></button>
+        <button class="tool-btn" data-tool="rect" title="Rectangle"><i data-lucide="square"></i></button>
+        <button class="tool-btn" data-tool="circle" title="Circle"><i data-lucide="circle"></i></button>
+        <button class="tool-btn" data-tool="triangle" title="Triangle"><i data-lucide="triangle"></i></button>
+        <label style="font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
+          <input type="checkbox" id="shapeFill" style="cursor: pointer; margin: 0;"> Fill
+        </label>
+      </div>
+
+      <!-- History Operations -->
+      <div class="toolbar-group" style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px;">
+        <button class="tool-btn" id="undoBtn" title="Undo Last"><i data-lucide="undo-2"></i></button>
+        <button class="tool-btn" id="redoBtn" title="Redo Next"><i data-lucide="redo-2"></i></button>
+      </div>
+
+      <!-- View Navigation -->
+      <div class="toolbar-group" style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px;">
+        <button class="tool-btn" data-tool="pan" title="Pan Board (Drag)"><i data-lucide="hand"></i></button>
+        <button class="tool-btn" id="toggleGridBtn" title="Toggle Figma Dotted Grid"><i data-lucide="grid"></i></button>
+        <button class="tool-btn" id="fullscreenBtn" title="Toggle Fullscreen Canvas"><i data-lucide="maximize"></i></button>
+      </div>
+      
+      <!-- Thickness Slider -->
+      <div class="toolbar-group" style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px;">
+        <label style="font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">Size: <span id="brushSizeVal">5</span>px</label>
+        <input type="range" id="brushSize" min="1" max="25" value="5" style="width: 70px; height: 4px; cursor: pointer;">
+      </div>
+      
+      <!-- Colors Palette -->
+      <div class="toolbar-group colors-palette" style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px;">
+        <div class="color-swatch active" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
+        <div class="color-swatch" style="background-color: #ef4444;" data-color="#ef4444"></div>
+        <div class="color-swatch" style="background-color: #10b981;" data-color="#10b981"></div>
+        <div class="color-swatch" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
+        <div class="color-swatch" style="background-color: #a855f7;" data-color="#a855f7"></div>
+        <div class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff"></div>
+        <div class="color-swatch" style="background-color: #0e1322;" data-color="#0e1322"></div>
+        <input type="color" id="customColorPicker" title="Custom Picker" value="#3b82f6" style="width: 20px; height: 20px; border: 1px dashed rgba(255,255,255,0.3); padding: 0; background: none; cursor: pointer; border-radius: 50%;">
+      </div>
+      
+      <!-- Storage Actions -->
+      <div class="toolbar-group" style="border-left: 1px solid rgba(255,255,255,0.15); padding-left: 12px;">
+        <button class="tool-btn" id="insertImageBtn" title="Insert Image"><i data-lucide="image"></i></button>
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        
+        <button class="tool-btn" id="saveBoardBtn" title="Download Board File"><i data-lucide="save"></i></button>
+        <button class="tool-btn" id="exportPngBtn" title="Export as PNG"><i data-lucide="download"></i></button>
+        
+        <button class="tool-btn" id="adminClearBtn" title="Clear Everything" style="color: var(--error); border-color: rgba(239, 68, 68, 0.2) !important;"><i data-lucide="trash-2"></i></button>
+      </div>
+    </div>
+
+    <!-- Drawing canvas wrapper -->
+    <div class="board-canvas-wrapper">
+      <canvas id="whiteboardCanvas" width="1200" height="900"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Delay initialization slightly to let base.html DOMContentLoaded listener execute first
+    setTimeout(initAdminControls, 80);
+
+    function initAdminControls() {
+      const wb = window.whiteboard;
+      if (!wb) {
+        console.error("Whiteboard global state window.whiteboard not found.");
+        return;
+      }
+
+      // --- Grid Toggle ---
+      const toggleGridBtn = document.getElementById("toggleGridBtn");
+      if (toggleGridBtn) {
+        toggleGridBtn.classList.toggle("active", wb.showGrid);
+        toggleGridBtn.addEventListener("click", () => {
+          wb.showGrid = !wb.showGrid;
+          toggleGridBtn.classList.toggle("active", wb.showGrid);
+          wb.redrawCanvas();
+        });
+      }
+
+      // --- Undo Operation ---
+      const undoBtn = document.getElementById("undoBtn");
+      if (undoBtn) {
+        undoBtn.addEventListener("click", () => {
+          if (wb.undoStack.length > 0) {
+            const strokeId = wb.undoStack.pop();
+            
+            // Find all packets matching this strokeId to put them on redoStack
+            const undonePackets = wb.localHistory.filter(item => item.strokeId === strokeId);
+            wb.redoStack.push({ strokeId, packets: undonePackets });
+            
+            // Update local state and redraw
+            wb.localHistory = wb.localHistory.filter(item => item.strokeId !== strokeId);
+            wb.redrawCanvas();
+            
+            // Broadcast undo action to WebSocket
+            wb.sendBoardData({ type: "undo", strokeId: strokeId });
+          }
+        });
+      }
+
+      // --- Redo Operation ---
+      const redoBtn = document.getElementById("redoBtn");
+      if (redoBtn) {
+        redoBtn.addEventListener("click", () => {
+          if (wb.redoStack.length > 0) {
+            const redoAction = wb.redoStack.pop();
+            wb.undoStack.push(redoAction.strokeId);
+            
+            // Re-append packets and redraw locally, then broadcast
+            redoAction.packets.forEach(packet => {
+              wb.localHistory.push(packet);
+              wb.drawItem(packet);
+              wb.sendBoardData(packet);
+            });
+          }
+        });
+      }
+
+      // --- Zoom Operations ---
+      const zoomInBtn = document.getElementById("zoomInBtn");
+      const zoomOutBtn = document.getElementById("zoomOutBtn");
+      const zoomResetBtn = document.getElementById("zoomResetBtn");
+      const zoomPercentIndicator = document.getElementById("zoomPercentIndicator");
+
+      function updateZoomDisplay() {
+        if (zoomPercentIndicator) {
+          zoomPercentIndicator.innerText = `${Math.round(wb.scale * 100)}%`;
+        }
+      }
+
+      // Initialize zoom indicator
+      updateZoomDisplay();
+
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener("click", () => {
+          wb.scale = Math.min(4.0, wb.scale * 1.25);
+          updateZoomDisplay();
+          wb.redrawCanvas();
+        });
+      }
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener("click", () => {
+          wb.scale = Math.max(0.25, wb.scale / 1.25);
+          updateZoomDisplay();
+          wb.redrawCanvas();
+        });
+      }
+      if (zoomResetBtn) {
+        zoomResetBtn.addEventListener("click", () => {
+          wb.scale = 1.0;
+          wb.offsetX = 0;
+          wb.offsetY = 0;
+          updateZoomDisplay();
+          wb.redrawCanvas();
+        });
+      }
+
+      // --- Fullscreen ---
+      const fullscreenBtn = document.getElementById("fullscreenBtn");
+      if (fullscreenBtn) {
+        fullscreenBtn.addEventListener("click", () => {
+          const container = document.querySelector(".board-canvas-wrapper");
+          if (container) {
+            if (!document.fullscreenElement) {
+              container.requestFullscreen().catch(err => {
+                console.error("Error enabling fullscreen: ", err);
+              });
+              fullscreenBtn.classList.add("active");
+            } else {
+              document.exitFullscreen();
+              fullscreenBtn.classList.remove("active");
+            }
+          }
+        });
+      }
+
+      // --- Clear Board (Admin specific confirmation) ---
+      const adminClearBtn = document.getElementById("adminClearBtn");
+      if (adminClearBtn) {
+        adminClearBtn.addEventListener("click", () => {
+          if (confirm("Are you sure you want to clear the entire whiteboard? This will clear history for all students.")) {
+            wb.localHistory = [];
+            wb.undoStack = [];
+            wb.redoStack = [];
+            wb.redrawCanvas();
+            wb.sendBoardData({ type: "clear" });
+          }
+        });
+      }
+
+      // --- Insert Image ---
+      const insertImageBtn = document.getElementById("insertImageBtn");
+      const imageInput = document.getElementById("imageInput");
+      if (insertImageBtn && imageInput) {
+        insertImageBtn.addEventListener("click", () => {
+          imageInput.click();
+        });
+        imageInput.addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const img = new Image();
+              img.src = event.target.result;
+              img.onload = () => {
+                // Centered coordinate calculation in 1200x900 absolute canvas coordinates
+                const w = Math.min(600, img.width);
+                const h = img.height * (w / img.width);
+                const x = (1200 - w) / 2 - wb.offsetX;
+                const y = (900 - h) / 2 - wb.offsetY;
+                
+                const strokeId = "stroke_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+                const imgPacket = {
+                  type: "image",
+                  src: event.target.result,
+                  x: x,
+                  y: y,
+                  w: w,
+                  h: h,
+                  strokeId: strokeId
+                };
+                
+                wb.localHistory.push(imgPacket);
+                wb.drawItem(imgPacket);
+                wb.sendBoardData(imgPacket);
+                
+                wb.undoStack.push(strokeId);
+                wb.redoStack = [];
+              };
+            };
+            reader.readAsDataURL(file);
+          }
+          imageInput.value = "";
+        });
+      }
+
+      // --- Save Local State JSON ---
+      const saveBoardBtn = document.getElementById("saveBoardBtn");
+      if (saveBoardBtn) {
+        saveBoardBtn.addEventListener("click", () => {
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(wb.localHistory));
+          const downloadAnchor = document.createElement("a");
+          downloadAnchor.setAttribute("href", dataStr);
+          downloadAnchor.setAttribute("download", `ccna_whiteboard_${Date.now()}.json`);
+          document.body.appendChild(downloadAnchor);
+          downloadAnchor.click();
+          downloadAnchor.remove();
+        });
+      }
+
+      // --- Export as PNG Image ---
+      const exportPngBtn = document.getElementById("exportPngBtn");
+      if (exportPngBtn) {
+        exportPngBtn.addEventListener("click", () => {
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = 1200;
+          tempCanvas.height = 900;
+          const tempCtx = tempCanvas.getContext("2d");
+          
+          // Draw solid background depending on active theme
+          const theme = document.documentElement.getAttribute("data-theme") || "dark";
+          tempCtx.fillStyle = theme === "light" ? "#ffffff" : "#0e1322";
+          tempCtx.fillRect(0, 0, 1200, 900);
+          
+          // Redirect ctx pointer temporarily to render all history items onto temp canvas
+          const origCtx = wb.ctx;
+          wb.ctx = tempCtx;
+          wb.localHistory.forEach(item => wb.drawItemRaw(item));
+          wb.ctx = origCtx;
+          
+          const dataUrl = tempCanvas.toDataURL("image/png");
+          const downloadAnchor = document.createElement("a");
+          downloadAnchor.setAttribute("href", dataUrl);
+          downloadAnchor.setAttribute("download", `ccna_whiteboard_${Date.now()}.png`);
+          document.body.appendChild(downloadAnchor);
+          downloadAnchor.click();
+          downloadAnchor.remove();
+        });
+      }
+
+      // --- Live Pointer Broadcast ---
+      let lastPointerSent = 0;
+      const canvas = document.getElementById("whiteboardCanvas");
+      if (canvas) {
+        canvas.addEventListener("mousemove", (e) => {
+          const now = Date.now();
+          if (now - lastPointerSent > 60) {
+            const coords = wb.getCanvasCoords(e);
+            if (wb.sendBoardData) {
+              wb.sendBoardData({
+                type: "pointer",
+                x: coords.x,
+                y: coords.y
+              });
+            }
+            lastPointerSent = now;
+          }
+        });
+      }
+    }
+  });
+</script>
+{% endblock %}

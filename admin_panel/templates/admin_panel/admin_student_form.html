@@ -1,0 +1,205 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Admin Panel</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-root"><a href="{% url 'admin_dashboard' %}" style="text-decoration: none; color: inherit;">Student Management</a></span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">{% if is_edit %}Edit Student{% else %}Add Student{% endif %}</span>
+{% endblock %}
+
+{% block content %}
+<div class="lesson-card" style="max-width: 900px; margin: 20px auto; padding: 32px;">
+  <div style="text-align: center; margin-bottom: 32px;">
+    <i data-lucide="{% if is_edit %}edit-3{% else %}user-plus{% endif %}" style="width: 48px; height: 48px; color: var(--accent); margin-bottom: 12px;"></i>
+    <h2 class="exam-setup-title" style="font-size: 24px; font-weight: 800; color: var(--text-primary);">
+      {% if is_edit %}Edit Student Account{% else %}Create Student Account{% endif %}
+    </h2>
+    <p class="exam-setup-desc" style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">
+      Configure student login credentials and manage curriculum topic access permissions.
+    </p>
+  </div>
+
+  {% if error_msg %}
+    <div style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); border-radius: var(--radius); padding: 12px; margin-bottom: 24px; font-size: 14px; color: var(--error);">
+      {{ error_msg }}
+    </div>
+  {% endif %}
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+      <!-- Column 1: Credentials Form -->
+      <div style="flex: 1; min-width: 320px;">
+        <h3 style="font-weight: 700; font-size: 15px; text-transform: uppercase; color: var(--accent); letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px;">
+          Account Credentials
+        </h3>
+
+        {% if is_edit %}
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="username" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px;">Username</label>
+            <input type="text" name="username" id="username" class="form-control" value="{{ student.username }}" required style="width: 100%;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="email" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px;">Email Address</label>
+            <input type="email" name="email" id="email" class="form-control" value="{{ student.email }}" placeholder="Enter email address" style="width: 100%;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="new_password" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px;">Password</label>
+            <input type="password" name="new_password" id="new_password" class="form-control" placeholder="Leave blank to keep existing password" style="width: 100%;">
+            <small style="display: block; color: var(--text-muted); font-size: 11px; margin-top: 6px; line-height: 1.4;">
+              Type a new password here to reset this student's login password.
+            </small>
+          </div>
+        {% else %}
+          {% if form.errors %}
+            <div style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); border-radius: var(--radius); padding: 12px; margin-bottom: 20px; font-size: 13px; color: var(--error); line-height: 1.5;">
+              {% for field in form %}
+                {% if field.errors %}
+                  <strong>{{ field.label }}:</strong> {{ field.errors|striptags }}<br>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% for field in form %}
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label for="{{ field.id_for_label }}" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px;">
+                {{ field.label }}
+              </label>
+              <input type="{% if 'password' in field.name %}password{% else %}text{% endif %}" 
+                     name="{{ field.name }}" 
+                     id="{{ field.id_for_label }}" 
+                     class="form-control" 
+                     placeholder="Enter {{ field.label|lower }}" 
+                     required 
+                     style="width: 100%;">
+              {% if field.help_text %}
+                <small style="display: block; color: var(--text-muted); font-size: 11px; margin-top: 4px; line-height: 1.4;">
+                  {{ field.help_text }}
+                </small>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="email" style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px;">Email Address</label>
+            <input type="email" name="email" id="email" class="form-control" placeholder="Enter email address" style="width: 100%;">
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Column 2: Topic Access Control -->
+      <div style="flex: 1.3; min-width: 320px; display: flex; flex-direction: column;">
+        <h3 style="font-weight: 700; font-size: 15px; text-transform: uppercase; color: var(--accent); letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px;">
+          Topic Access Control
+        </h3>
+
+        <!-- Unlock All Toggle -->
+        <div style="background-color: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <label for="unlock_all_topics_toggle" style="font-weight: 600; font-size: 14px; color: var(--text-primary); cursor: pointer; display: block; margin-bottom: 4px;">
+              Unlock All CCNA Chapters
+            </label>
+            <span style="font-size: 12px; color: var(--text-muted);">Grants access to all 63 lessons and quizzes automatically.</span>
+          </div>
+          <input type="hidden" name="unlock_all_topics" id="unlock_all_topics_hidden" value="{% if student.profile.unlock_all_topics %}true{% else %}false{% endif %}">
+          <input type="checkbox" id="unlock_all_topics_toggle" style="width: 20px; height: 20px; cursor: pointer;" 
+                 {% if student.profile.unlock_all_topics %}checked{% endif %}>
+        </div>
+
+        <!-- Topics checklist tree -->
+        <div id="topics_checklist_container" style="background-color: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 20px; max-height: 400px; overflow-y: auto;">
+          <p style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 16px; text-transform: uppercase;">
+            Selective Topic Permissions
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            {% for domain in domains %}
+              <div style="border-left: 2px solid var(--border-color); padding-left: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px;">
+                  <span style="font-weight: 700; color: var(--text-primary); font-size: 13px;">{{ domain.name|upper }}</span>
+                  <button type="button" class="btn domain-toggle-btn" data-domain-id="{{ domain.id }}" style="font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: 600; background-color: var(--bg-card); cursor: pointer;">
+                    Toggle Domain
+                  </button>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  {% for topic in domain.topics.all %}
+                    <div style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px;">
+                      <input type="checkbox" name="allowed_topics" value="{{ topic.id }}" 
+                             id="topic_check_{{ topic.id }}" class="topic-checkbox domain-{{ domain.id }}-check" 
+                             style="margin-top: 2px; cursor: pointer;"
+                             {% if topic.id in student.profile.allowed_topics %}checked{% endif %}>
+                      <label for="topic_check_{{ topic.id }}" style="color: var(--text-secondary); cursor: pointer; line-height: 1.4;">
+                        <strong>{{ topic.id }}.</strong> {{ topic.title }}
+                      </label>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Section -->
+    <div style="display: flex; gap: 16px; justify-content: flex-end; margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+      <a href="{% url 'admin_dashboard' %}" class="btn" style="padding: 10px 24px; text-decoration: none;">Cancel</a>
+      <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 600;">
+        {% if is_edit %}Save Changes{% else %}Create Student{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const unlockAllToggle = document.getElementById('unlock_all_topics_toggle');
+    const unlockAllHidden = document.getElementById('unlock_all_topics_hidden');
+    const topicsChecklistContainer = document.getElementById('topics_checklist_container');
+    const allCheckboxes = document.querySelectorAll('.topic-checkbox');
+
+    // Handles the Master Unlock Toggle
+    function updateChecklistDisabledState() {
+      const isChecked = unlockAllToggle.checked;
+      unlockAllHidden.value = isChecked ? "true" : "false";
+      
+      if (isChecked) {
+        topicsChecklistContainer.style.opacity = '0.4';
+        allCheckboxes.forEach(cb => {
+          cb.disabled = true;
+        });
+      } else {
+        topicsChecklistContainer.style.opacity = '1';
+        allCheckboxes.forEach(cb => {
+          cb.disabled = false;
+        });
+      }
+    }
+
+    unlockAllToggle.addEventListener('change', updateChecklistDisabledState);
+    updateChecklistDisabledState(); // Run initially
+
+    // Handles Domain-level SELECT ALL toggles
+    document.querySelectorAll('.domain-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (unlockAllToggle.checked) return; // Ignore if Master Unlock is active
+        
+        const domainId = this.getAttribute('data-domain-id');
+        const checkboxes = document.querySelectorAll(`.domain-${domainId}-check`);
+        
+        // If some are unchecked, check all. Else, uncheck all.
+        const anyUnchecked = Array.from(checkboxes).some(cb => !cb.checked);
+        checkboxes.forEach(cb => {
+          cb.checked = anyUnchecked;
+        });
+      });
+    });
+  });
+</script>
+{% endblock %}

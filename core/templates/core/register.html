@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Account</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Register</span>
+{% endblock %}
+
+{% block content %}
+<div class="exam-setup-card" style="max-width: 450px; margin: 40px auto; text-align: left;">
+  <div style="text-align: center; margin-bottom: 24px;">
+    <i data-lucide="user-plus" style="width: 48px; height: 48px; color: var(--accent); margin-bottom: 12px;"></i>
+    <h2 class="exam-setup-title">Create an Account</h2>
+    <p class="exam-setup-desc">Join to start tracking your learning progress across all 63 CCNA topics.</p>
+  </div>
+
+  <form method="POST" action="{% url 'register' %}">
+    {% csrf_token %}
+    
+    {% if form.errors %}
+      <div style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); border-radius: var(--radius); padding: 12px; margin-bottom: 20px; font-size: 13px; color: var(--error);">
+        {% for field in form %}
+          {% if field.errors %}
+            <strong>{{ field.label }}:</strong> {{ field.errors|striptags }}<br>
+          {% endif %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          {{ error }}<br>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% for field in form %}
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label for="{{ field.id_for_label }}" style="display: block; font-weight: 500; margin-bottom: 8px;">
+          {{ field.label }}
+        </label>
+        <input type="{% if field.name == 'password' or 'password' in field.name %}password{% else %}text{% endif %}" 
+               name="{{ field.name }}" 
+               id="{{ field.id_for_label }}" 
+               class="form-control" 
+               placeholder="Enter {{ field.label|lower }}" 
+               required 
+               style="width: 100%;">
+        {% if field.help_text %}
+          <small style="display: block; color: var(--text-muted); font-size: 11px; margin-top: 4px;">
+            {{ field.help_text }}
+          </small>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary w-full" style="padding: 12px; font-size: 15px; font-weight: 600; margin-top: 10px;">
+      Register
+    </button>
+  </form>
+
+  <div style="text-align: center; margin-top: 24px; font-size: 14px; color: var(--text-secondary);">
+    Already have an account? 
+    <a href="{% url 'login' %}" style="color: var(--accent); text-decoration: none; font-weight: 500;">Log In here</a>
+  </div>
+</div>
+{% endblock %}

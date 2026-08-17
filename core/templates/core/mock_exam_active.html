@@ -1,0 +1,213 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Exam Active</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current" id="examBreadcrumb">Question 1 of ...</span>
+{% endblock %}
+
+{% block content %}
+<div id="examContainer">
+  <!-- Active Exam Renders Here -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const questions = {{ questions_json|safe }};
+    let secondsRemaining = {{ seconds_remaining }};
+    const examContainer = document.getElementById("examContainer");
+    const breadcrumb = document.getElementById("examBreadcrumb");
+
+    let currentIndex = 0;
+    const userAnswers = new Array(questions.length).fill(null);
+    let timerId = null;
+
+    // Start Timer
+    timerId = setInterval(() => {
+      secondsRemaining--;
+      updateTimerDisplay();
+      
+      if (secondsRemaining <= 0) {
+        clearInterval(timerId);
+        submitExam(true);
+      }
+    }, 1000);
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(secondsRemaining / 60);
+      const secs = secondsRemaining % 60;
+      const displayStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      const timerEl = document.getElementById("examTimerEl");
+      if (timerEl) timerEl.innerText = displayStr;
+    }
+
+    function renderQuestion() {
+      breadcrumb.innerText = `Question ${currentIndex + 1} of ${questions.length}`;
+      const q = questions[currentIndex];
+      const selected = userAnswers[currentIndex];
+
+      examContainer.innerHTML = `
+        <div class="exam-active-container">
+          <div class="exam-status-bar" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--text-secondary);">QUESTION ${currentIndex + 1} OF ${questions.length}</div>
+            <div class="exam-timer" id="examTimerEl" style="font-family: 'Fira Code', monospace; font-weight: bold; background-color: var(--bg-card); padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color);">--:--</div>
+          </div>
+
+          <div class="question-card" style="margin-top:20px;">
+            <p class="question-text" style="font-size: 16px; font-weight: 500; margin-bottom: 20px;">${q.question}</p>
+            <div class="options-list" style="display: flex; flex-direction: column; gap: 12px;">
+              ${q.options.map((opt, idx) => `
+                <div class="option-item ${selected === idx ? 'selected' : ''}" data-index="${idx}" style="cursor: pointer; padding: 14px 16px; border: 1px solid ${selected === idx ? 'var(--accent)' : 'var(--border-color)'}; background-color: ${selected === idx ? 'rgba(0, 168, 204, 0.05)' : 'transparent'}; border-radius: var(--radius); display: flex; align-items: center; gap: 12px; transition: all 0.2s ease;">
+                  <span class="option-letter" style="background-color: var(--bg-app); border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 13px;">${String.fromCharCode(65 + idx)}</span>
+                  <span>${opt}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="lesson-actions" style="margin-top:40px; display: flex; justify-content: space-between; gap: 16px;">
+            <button class="btn" id="examPrevBtn" ${currentIndex === 0 ? 'disabled' : ''}>Previous</button>
+            <button class="btn btn-success" id="examFinishBtn">Finish & Submit</button>
+            <button class="btn btn-primary" id="examNextBtn" ${currentIndex === questions.length - 1 ? 'disabled' : ''}>Next</button>
+          </div>
+
+          <!-- Pagination dots -->
+          <div class="exam-grid-navigation" style="margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 10px;">
+            ${questions.map((_, idx) => `
+              <div class="exam-nav-dot ${idx === currentIndex ? 'active' : ''} ${userAnswers[idx] !== null ? 'answered' : ''}" data-index="${idx}" style="cursor: pointer; text-align: center; padding: 8px 0; font-weight: bold; font-size: 13px; border-radius: 4px; border: 1px solid ${idx === currentIndex ? 'var(--accent)' : 'var(--border-color)'}; background-color: ${idx === currentIndex ? 'var(--accent)' : (userAnswers[idx] !== null ? 'rgba(46, 204, 113, 0.1)' : 'transparent')}; color: ${idx === currentIndex ? 'white' : 'var(--text-primary)'};">
+                ${idx + 1}
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+
+      updateTimerDisplay();
+      lucide.createIcons();
+
+      // Bind selection clicks
+      const optionItems = examContainer.querySelectorAll(".option-item");
+      optionItems.forEach(item => {
+        item.addEventListener("click", () => {
+          const index = parseInt(item.getAttribute("data-index"));
+          userAnswers[currentIndex] = index;
+          optionItems.forEach(i => {
+            i.style.borderColor = "var(--border-color)";
+            i.style.backgroundColor = "transparent";
+          });
+          item.style.borderColor = "var(--accent)";
+          item.style.backgroundColor = "rgba(0, 168, 204, 0.05)";
+          
+          const dot = examContainer.querySelector(`.exam-nav-dot[data-index="${currentIndex}"]`);
+          if (dot) {
+            dot.style.backgroundColor = "rgba(46, 204, 113, 0.1)";
+          }
+        });
+      });
+
+      // Navigation button listeners
+      document.getElementById("examPrevBtn").addEventListener("click", () => {
+        if (currentIndex > 0) {
+          currentIndex--;
+          renderQuestion();
+        }
+      });
+
+      document.getElementById("examNextBtn").addEventListener("click", () => {
+        if (currentIndex < questions.length - 1) {
+          currentIndex++;
+          renderQuestion();
+        }
+      });
+
+      document.getElementById("examFinishBtn").addEventListener("click", () => {
+        if (confirm("Are you sure you want to submit your exam configuration?")) {
+          clearInterval(timerId);
+          submitExam(false);
+        }
+      });
+
+      // Pagination dots click triggers
+      examContainer.querySelectorAll(".exam-nav-dot").forEach(dot => {
+        dot.addEventListener("click", () => {
+          currentIndex = parseInt(dot.getAttribute("data-index"));
+          renderQuestion();
+        });
+      });
+    }
+
+    function submitExam(timedOut) {
+      if (timedOut) {
+        alert("Time limit reached! Your exam is being automatically submitted.");
+      }
+
+      const csrfToken = '{{ csrf_token }}';
+      fetch("{% url 'mock_exam_submit' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({ answers: userAnswers })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          renderResults(data);
+        } else {
+          alert("Error submitting exam: " + data.message);
+        }
+      })
+      .catch(err => console.error(err));
+    }
+
+    function renderResults(data) {
+      breadcrumb.innerText = "Exam Results Report";
+      const percent = data.percentage;
+
+      examContainer.innerHTML = `
+        <div class="quiz-card" style="padding: 30px 15px;">
+          <h2 class="lesson-title" style="text-align:center; margin-bottom: 24px;">Exam Results Report</h2>
+          <div style="text-align:center; margin-bottom:32px;">
+            <div style="font-size: 72px; font-weight:800; color:${percent >= 82 ? 'var(--success)' : 'var(--error)'};">${percent}%</div>
+            <p class="dashboard-subtitle" style="margin-top: 8px;">Passing score is 82%. You answered ${data.correct_count} of ${data.total_questions} questions correctly.</p>
+          </div>
+
+          <h3 class="domain-section-title" style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Question Breakdown</h3>
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            ${data.breakdown.map((q, idx) => {
+              const userAns = q.userAnswer;
+              const isCorrect = q.isCorrect;
+              return `
+                <div style="padding:18px; border:1px solid var(--border-color); border-radius:var(--radius); background-color:var(--bg-app);">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; font-weight:bold; color:var(--text-muted);">
+                    <span>Topic ${q.topicId}: ${q.topicTitle}</span>
+                    <span style="color:${isCorrect ? 'var(--success)' : 'var(--error)'};">${isCorrect ? 'CORRECT' : 'INCORRECT'}</span>
+                  </div>
+                  <p style="font-weight:600; margin-bottom:12px; font-size:14px; line-height: 1.5;">${q.question}</p>
+                  <div style="font-size:13px; color:var(--text-secondary); margin-bottom: 12px;">
+                    <div><strong>Your Answer:</strong> ${userAns !== null ? q.options[userAns] : '<span style="color:var(--error)">Not Answered</span>'}</div>
+                    ${!isCorrect ? `<div><strong>Correct Answer:</strong> ${q.options[q.correctIndex]}</div>` : ''}
+                  </div>
+                  <div style="margin-top:10px; font-size:12px; background-color:var(--bg-card); padding:12px; border-radius:6px; border-left:3px solid var(--accent); line-height: 1.5; color: var(--text-secondary);">
+                    ${q.explanation}
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+
+          <div style="text-align:center; margin-top:40px;">
+            <a href="{% url 'dashboard' %}" class="btn btn-primary" style="text-decoration: none; padding: 12px 28px; font-weight: 600;">Return to Dashboard</a>
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    renderQuestion();
+  });
+</script>
+{% endblock %}

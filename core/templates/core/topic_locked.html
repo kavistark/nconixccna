@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Curriculum</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Topic Locked</span>
+{% endblock %}
+
+{% block content %}
+<div class="exam-setup-card" style="max-width: 550px; margin: 60px auto; text-align: center; padding: 48px 32px; border: 1px solid var(--border-color);">
+  <div style="width: 72px; height: 72px; border-radius: 50%; background-color: rgba(230, 126, 34, 0.1); color: #e67e22; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+    <i data-lucide="lock" style="width: 36px; height: 36px;"></i>
+  </div>
+  
+  <h2 class="exam-setup-title" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">
+    Topic Locked
+  </h2>
+  
+  <p class="exam-setup-desc" style="margin-top: 16px; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+    Access to <strong>Chapter {{ topic.id }}: {{ topic.title }}</strong> is currently locked. 
+  </p>
+  
+  <div style="background-color: var(--bg-app); border-radius: var(--radius); padding: 16px; margin: 24px 0; text-align: left; font-size: 13px; line-height: 1.5; color: var(--text-muted); border: 1px dashed var(--border-color);">
+    <strong>Note for Students:</strong> Your instructor or administrator must activate access to this chapter from the Admin Portal before you can view study lessons or attempt practice quizzes for this topic.
+  </div>
+
+  <div style="display: flex; gap: 16px; justify-content: center; margin-top: 24px;">
+    <a href="{% url 'dashboard' %}" class="btn btn-primary" style="padding: 10px 28px; text-decoration: none; font-weight: 600;">
+      Return to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

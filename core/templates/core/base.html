@@ -1,0 +1,1311 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCNA Prep Platform</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  
+  <script>
+    // Immediate script to prevent theme flashing
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+</head>
+<body>
+
+  <!-- App Shell -->
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'dashboard' %}" class="logo" style="text-decoration: none;">
+          <i data-lucide="network" class="logo-icon"></i>
+          <span>CCNA <span class="accent-text">Prep</span></span>
+        </a>
+        <button class="theme-toggle" id="themeToggleBtn" title="Toggle Light/Dark Mode">
+          <i data-lucide="sun" class="sun-icon"></i>
+          <i data-lucide="moon" class="moon-icon"></i>
+        </button>
+      </div>
+
+      <!-- Search bar -->
+      <div class="search-box">
+        <i data-lucide="search" class="search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Search topics...">
+      </div>
+
+      <!-- Syllabus / Navigation list -->
+      <nav class="navigation">
+        <div class="nav-list" id="navList">
+          {% if user.is_authenticated %}
+            {% if user.is_superuser or user.is_staff or user.profile.role == 'admin' %}
+              <div class="nav-section-title">ADMIN CONTROLS</div>
+              <a href="{% url 'admin_dashboard' %}" class="nav-sub-item {% if active_page == 'admin_dashboard' %}active{% endif %}" style="padding-left: 20px; text-decoration: none;">
+                <span><i data-lucide="shield" class="sub-item-icon"></i>Student Manager</span>
+              </a>
+              <a href="{% url 'admin_stats' %}" class="nav-sub-item {% if active_page == 'admin_stats' %}active{% endif %}" style="padding-left: 20px; text-decoration: none;">
+                <span><i data-lucide="bar-chart-3" class="sub-item-icon"></i>Platform Statistics</span>
+              </a>
+              <a href="{% url 'admin_board' %}" class="nav-sub-item {% if active_page == 'admin_board' %}active{% endif %}" style="padding-left: 20px; text-decoration: none;">
+                <span><i data-lucide="presentation" class="sub-item-icon"></i>Live Whiteboard</span>
+              </a>
+              <a href="/admin/" target="_blank" class="nav-sub-item" style="padding-left: 20px; text-decoration: none;">
+                <span><i data-lucide="settings" class="sub-item-icon"></i>Django Admin</span>
+              </a>
+            {% endif %}
+            {% for domain in sidebar_domains %}
+              <div class="nav-section-title">{{ domain.name|upper }}</div>
+              {% for topic in domain.topics %}
+                <div class="chapter-item {% if active_page == 'lesson' or active_page == 'quiz' %}{% if topic.id == current_topic_id %}expanded{% endif %}{% endif %}" id="chapter-{{ topic.id }}" data-title="{{ topic.title }}">
+                  <div class="chapter-header">
+                    <div class="chapter-title-container">
+                      <span class="chapter-number">{{ topic.id }}</span>
+                      <span {% if topic.locked %}style="color: var(--text-muted);"{% endif %}>{{ topic.title }}</span>
+                    </div>
+                    {% if topic.locked %}
+                      <i data-lucide="lock" class="chapter-chevron" style="color: var(--text-muted); transform: none !important;"></i>
+                    {% else %}
+                      <i data-lucide="chevron-right" class="chapter-chevron"></i>
+                    {% endif %}
+                  </div>
+                  <div class="chapter-children">
+                    {% if topic.locked %}
+                      <div class="nav-sub-item disabled-nav-item" style="opacity: 0.4; cursor: not-allowed; pointer-events: none; padding-left: 20px;">
+                        <span><i data-lucide="lock" class="sub-item-icon"></i>Study Lesson (Locked)</span>
+                      </div>
+                      <div class="nav-sub-item disabled-nav-item" style="opacity: 0.4; cursor: not-allowed; pointer-events: none; padding-left: 20px;">
+                        <span><i data-lucide="lock" class="sub-item-icon"></i>Practice Quiz (Locked)</span>
+                      </div>
+                    {% else %}
+                      <a href="{% url 'lesson' topic.id %}" class="nav-sub-item {% if active_page == 'lesson' and topic.id == current_topic_id %}active{% endif %} {% if topic.lesson_completed %}completed{% endif %}" id="nav-lesson-{{ topic.id }}">
+                        <span><i data-lucide="book-open" class="sub-item-icon"></i>Study Lesson</span>
+                        <i data-lucide="check" class="nav-check"></i>
+                      </a>
+                      <a href="{% url 'quiz' topic.id %}" class="nav-sub-item {% if active_page == 'quiz' and topic.id == current_topic_id %}active{% endif %} {% if topic.quiz_completed %}completed{% endif %}" id="nav-quiz-{{ topic.id }}">
+                        <span><i data-lucide="help-circle" class="sub-item-icon"></i>Practice Quiz</span>
+                        <i data-lucide="check" class="nav-check"></i>
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            {% endfor %}
+          {% else %}
+            <div class="nav-section-title">GET STARTED</div>
+            <a href="{% url 'login' %}" class="nav-sub-item" style="padding-left: 20px;">
+              <span><i data-lucide="log-in" class="sub-item-icon"></i>Log In</span>
+            </a>
+            <a href="{% url 'register' %}" class="nav-sub-item" style="padding-left: 20px;">
+              <span><i data-lucide="user-plus" class="sub-item-icon"></i>Register</span>
+            </a>
+          {% endif %}
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      
+      <!-- Top Header -->
+      <header class="header">
+        <button class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle Menu">
+          <i data-lucide="menu"></i>
+        </button>
+        
+        <div class="header-breadcrumbs">
+          {% block breadcrumbs %}
+            <span class="breadcrumb-root">Dashboard</span>
+            <span class="breadcrumb-separator" style="display:none;"><i data-lucide="chevron-right"></i></span>
+            <span class="breadcrumb-current">Overview</span>
+          {% endblock %}
+        </div>
+
+        <div class="header-actions">
+          <button class="header-btn" id="toolSubnetBtn" title="Subnetting Calculator">
+            <i data-lucide="calculator"></i>
+            <span>Subnet Calc</span>
+          </button>
+          <button class="header-btn" id="toolCliBtn" title="Cisco IOS CLI Simulator">
+            <i data-lucide="terminal"></i>
+            <span>Cisco CLI</span>
+          </button>
+          
+          {% if user.is_authenticated %}
+            {% if active_page != 'admin_board' %}
+              <button class="header-btn" id="toolBoardBtn" title="Live Shared Whiteboard" style="position: relative;">
+                <i data-lucide="presentation"></i>
+                <span>Board</span>
+                <span class="board-badge" id="boardBadge" style="display: none; position: absolute; top: 6px; right: 8px; width: 8px; height: 8px; background-color: var(--error); border-radius: 50%;"></span>
+              </button>
+            {% endif %}
+            <a href="{% url 'dashboard' %}" class="header-btn {% if active_page == 'dashboard' %}highlight-btn{% endif %}" style="text-decoration: none;">
+              <i data-lucide="layout-dashboard"></i>
+              <span>Dashboard</span>
+            </a>
+            <a href="{% url 'logout' %}" class="header-btn" title="Log Out" style="text-decoration: none;">
+              <i data-lucide="log-out"></i>
+              <span>Log Out</span>
+            </a>
+          {% endif %}
+        </div>
+      </header>
+
+      <!-- Viewport: Content changes dynamically -->
+      <div class="viewport" id="viewport">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <!-- Dynamic Modals / Side Panels -->
+  
+  <!-- Subnetting Calculator Drawer -->
+  <div class="drawer" id="subnetDrawer">
+    <div class="drawer-header">
+      <h3><i data-lucide="calculator"></i> Subnetting Calculator</h3>
+      <button class="drawer-close" id="closeSubnetDrawer"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="form-group">
+        <label for="calcIp">IP Address</label>
+        <input type="text" id="calcIp" class="form-control" value="192.168.1.50">
+      </div>
+      <div class="form-group">
+        <label for="calcMask">CIDR Prefix (e.g. 24)</label>
+        <input type="number" id="calcMask" class="form-control" min="0" max="32" value="26">
+      </div>
+      <button class="btn btn-primary w-full" id="calcBtn">Calculate Subnet</button>
+      
+      <div class="calc-results" id="calcResults" style="display:none; margin-top:20px;">
+        <table class="results-table">
+          <tr>
+            <td><strong>CIDR Mask:</strong></td>
+            <td id="resNetmask">255.255.255.192</td>
+          </tr>
+          <tr>
+            <td><strong>Network ID:</strong></td>
+            <td id="resNetwork">192.168.1.0</td>
+          </tr>
+          <tr>
+            <td><strong>First Usable IP:</strong></td>
+            <td id="resFirst">192.168.1.1</td>
+          </tr>
+          <tr>
+            <td><strong>Last Usable IP:</strong></td>
+            <td id="resLast">192.168.1.62</td>
+          </tr>
+          <tr>
+            <td><strong>Broadcast IP:</strong></td>
+            <td id="resBroadcast">192.168.1.63</td>
+          </tr>
+          <tr>
+            <td><strong>Usable Hosts:</strong></td>
+            <td id="resHosts">62</td>
+          </tr>
+          <tr>
+            <td><strong>Wildcard Mask:</strong></td>
+            <td id="resWildcard">0.0.0.63</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cisco IOS CLI Simulator Drawer -->
+  <div class="drawer" id="cliDrawer">
+    <div class="drawer-header">
+      <h3><i data-lucide="terminal"></i> Cisco IOS Terminal Simulator</h3>
+      <button class="drawer-close" id="closeCliDrawer"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer-body cli-body">
+      <p class="cli-info" style="margin-bottom:15px; font-size:13px; color:var(--text-secondary);">
+        Simulate Cisco IOS configuration tasks. Type <code>help</code> or <code>?</code> for available commands. Try entering privileged EXEC mode with <code>enable</code>, config mode with <code>configure terminal</code>, and configure hostnames or IP addresses.
+      </p>
+      
+      <div class="cli-terminal" id="cliTerminal" style="height:350px;">
+        <div class="cli-output" id="cliOutput">
+          <div>Cisco IOS Software, Catalyst L3 Switch Software (CAT3K_CAA-UNIVERSALK9-M), Version 15.2(2)E, RELEASE SOFTWARE (fc1)</div>
+          <div>Copyright (c) 1986-2026 by Cisco Systems, Inc.</div>
+          <div>Press RETURN to get started.</div>
+          <br>
+        </div>
+        <div class="cli-input-line">
+          <span class="cli-prompt" id="cliPrompt">Switch></span>
+          <input type="text" id="cliInput" autocomplete="off">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Whiteboard Drawer -->
+  {% if active_page != 'admin_board' %}
+  <div class="drawer" id="boardDrawer">
+    <div class="drawer-header">
+      <h3><i data-lucide="presentation"></i> Live Teaching Board</h3>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span id="boardConnectionStatus" style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          <span style="display: inline-block; width: 8px; height: 8px; background-color: var(--error); border-radius: 50%;"></span>
+          Disconnected
+        </span>
+        <button class="drawer-close" id="closeBoardDrawer"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div class="drawer-body board-drawer-body">
+      {% if user.is_superuser or user.is_staff or user.profile.role == 'admin' %}
+        <!-- Admin Controls Toolbar -->
+        <div class="board-toolbar">
+          <div class="toolbar-group">
+            <button class="tool-btn active" data-tool="pen" title="Pen/Brush"><i data-lucide="pencil"></i></button>
+            <button class="tool-btn" data-tool="eraser" title="Eraser"><i data-lucide="eraser"></i></button>
+            <button class="tool-btn" data-tool="text" title="Text Tool"><i data-lucide="type"></i></button>
+            <button class="tool-btn" data-tool="rect" title="Rectangle"><i data-lucide="square"></i></button>
+            <button class="tool-btn" data-tool="circle" title="Circle"><i data-lucide="circle"></i></button>
+            <button class="tool-btn" data-tool="line" title="Line"><i data-lucide="minus"></i></button>
+          </div>
+          
+          <div class="toolbar-group">
+            <label style="font-size: 11px; color: var(--text-secondary);">Size: <span id="brushSizeVal">5</span>px</label>
+            <input type="range" id="brushSize" min="1" max="25" value="5" style="width: 70px; height: 4px;">
+          </div>
+          
+          <div class="toolbar-group colors-palette">
+            <div class="color-swatch active" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
+            <div class="color-swatch" style="background-color: #ef4444;" data-color="#ef4444"></div>
+            <div class="color-swatch" style="background-color: #10b981;" data-color="#10b981"></div>
+            <div class="color-swatch" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
+            <div class="color-swatch" style="background-color: #a855f7;" data-color="#a855f7"></div>
+            <div class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff"></div>
+            <div class="color-swatch" style="background-color: #0e1322;" data-color="#0e1322"></div>
+            <input type="color" id="customColorPicker" title="Custom Color" value="#3b82f6">
+          </div>
+          
+          <div class="toolbar-group" style="margin-left: auto;">
+            <button class="btn btn-secondary" id="clearBoardBtn" style="padding: 6px 12px; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Clear
+            </button>
+          </div>
+        </div>
+      {% else %}
+        <div class="student-board-msg" style="margin-bottom: 4px; font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="info" style="width: 16px; height: 16px; color: var(--accent);"></i>
+          <span>Viewing live board. Updates from the instructor will appear in real-time.</span>
+        </div>
+      {% endif %}
+
+      <div class="canvas-container" style="position: relative; width: 100%; background-color: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius); overflow: hidden;">
+        <canvas id="whiteboardCanvas" width="1200" height="900" style="display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; cursor: crosshair;"></canvas>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Backdrop overlay -->
+  <div class="backdrop" id="backdrop"></div>
+
+  <!-- Shared JavaScript Logic (Theme, Drawers, Calculator, Cisco CLI) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // --- Lucide Icons ---
+      lucide.createIcons();
+
+      // --- Theme Toggle ---
+      const themeToggleBtn = document.getElementById("themeToggleBtn");
+      themeToggleBtn.addEventListener("click", () => {
+        const currentTheme = document.documentElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+      });
+
+      // --- Mobile Menu Toggle ---
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const sidebar = document.getElementById("sidebar");
+      const backdrop = document.getElementById("backdrop");
+
+      mobileMenuBtn.addEventListener("click", () => {
+        sidebar.classList.toggle("open");
+        backdrop.classList.toggle("show");
+      });
+
+      // --- Drawers (Subnet & CLI) ---
+      const toolSubnetBtn = document.getElementById("toolSubnetBtn");
+      const toolCliBtn = document.getElementById("toolCliBtn");
+      const subnetDrawer = document.getElementById("subnetDrawer");
+      const cliDrawer = document.getElementById("cliDrawer");
+      const closeSubnetDrawer = document.getElementById("closeSubnetDrawer");
+      const closeCliDrawer = document.getElementById("closeCliDrawer");
+
+      toolSubnetBtn.addEventListener("click", () => {
+        subnetDrawer.classList.add("open");
+        backdrop.classList.add("show");
+      });
+
+      toolCliBtn.addEventListener("click", () => {
+        cliDrawer.classList.add("open");
+        backdrop.classList.add("show");
+        document.getElementById("cliInput").focus();
+      });
+
+      closeSubnetDrawer.addEventListener("click", () => {
+        subnetDrawer.classList.remove("open");
+        if (!sidebar.classList.contains("open") && !cliDrawer.classList.contains("open")) {
+          backdrop.classList.remove("show");
+        }
+      });
+
+      closeCliDrawer.addEventListener("click", () => {
+        cliDrawer.classList.remove("open");
+        if (!sidebar.classList.contains("open") && !subnetDrawer.classList.contains("open")) {
+          backdrop.classList.remove("show");
+        }
+      });
+
+      backdrop.addEventListener("click", () => {
+        sidebar.classList.remove("open");
+        subnetDrawer.classList.remove("open");
+        cliDrawer.classList.remove("open");
+        if (boardDrawer) boardDrawer.classList.remove("open");
+        backdrop.classList.remove("show");
+      });
+
+      // --- Collapsible Navigation ---
+      const chapters = document.querySelectorAll(".chapter-item");
+      chapters.forEach(chapter => {
+        chapter.querySelector(".chapter-header").addEventListener("click", () => {
+          const isExpanded = chapter.classList.contains("expanded");
+          chapters.forEach(item => item.classList.remove("expanded"));
+          if (!isExpanded) {
+            chapter.classList.add("expanded");
+          }
+        });
+      });
+
+      // --- Search Bar Filter ---
+      const searchInput = document.getElementById("searchInput");
+      if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+          const query = e.target.value.toLowerCase();
+          chapters.forEach(chapter => {
+            const title = chapter.getAttribute("data-title").toLowerCase();
+            const content = chapter.innerText.toLowerCase();
+            if (title.includes(query) || content.includes(query)) {
+              chapter.style.display = "block";
+              if (query.length > 0) {
+                chapter.classList.add("expanded");
+              }
+            } else {
+              chapter.style.display = "none";
+            }
+          });
+        });
+      }
+
+      // --- Subnet Calculator Calculator Logic ---
+      const calcIp = document.getElementById("calcIp");
+      const calcMask = document.getElementById("calcMask");
+      const calcBtn = document.getElementById("calcBtn");
+      const calcResults = document.getElementById("calcResults");
+
+      calcBtn.addEventListener("click", () => {
+        const ip = calcIp.value.trim();
+        const cidr = parseInt(calcMask.value.trim());
+
+        if (!validateIp(ip) || isNaN(cidr) || cidr < 0 || cidr > 32) {
+          alert("Invalid IP Address or Subnet Mask range.");
+          return;
+        }
+        calculateSubnetRange(ip, cidr);
+      });
+
+      function validateIp(ip) {
+        const parts = ip.split(".");
+        if (parts.length !== 4) return false;
+        return parts.every(p => {
+          const n = parseInt(p);
+          return !isNaN(n) && n >= 0 && n <= 255;
+        });
+      }
+
+      function calculateSubnetRange(ip, cidr) {
+        const ipParts = ip.split(".").map(Number);
+        let ipInt = (ipParts[0] << 24) >>> 0;
+        ipInt += (ipParts[1] << 16) >>> 0;
+        ipInt += (ipParts[2] << 8) >>> 0;
+        ipInt += ipParts[3] >>> 0;
+
+        let maskInt = 0;
+        if (cidr > 0) {
+          maskInt = (~0 << (32 - cidr)) >>> 0;
+        }
+
+        const netmaskStr = [(maskInt >>> 24) & 255, (maskInt >>> 16) & 255, (maskInt >>> 8) & 255, maskInt & 255].join(".");
+        const wildcardInt = (~maskInt) >>> 0;
+        const wildcardStr = [(wildcardInt >>> 24) & 255, (wildcardInt >>> 16) & 255, (wildcardInt >>> 8) & 255, wildcardInt & 255].join(".");
+        const networkInt = (ipInt & maskInt) >>> 0;
+        const networkStr = [(networkInt >>> 24) & 255, (networkInt >>> 16) & 255, (networkInt >>> 8) & 255, networkInt & 255].join(".");
+        const broadcastInt = (networkInt | wildcardInt) >>> 0;
+        const broadcastStr = [(broadcastInt >>> 24) & 255, (broadcastInt >>> 16) & 255, (broadcastInt >>> 8) & 255, broadcastInt & 255].join(".");
+
+        let firstUsableStr = "N/A";
+        let lastUsableStr = "N/A";
+        let usableHostsCount = 0;
+
+        if (cidr < 31) {
+          firstUsableStr = [((networkInt + 1) >>> 24) & 255, ((networkInt + 1) >>> 16) & 255, ((networkInt + 1) >>> 8) & 255, (networkInt + 1) & 255].join(".");
+          lastUsableStr = [((broadcastInt - 1) >>> 24) & 255, ((broadcastInt - 1) >>> 16) & 255, ((broadcastInt - 1) >>> 8) & 255, (broadcastInt - 1) & 255].join(".");
+          usableHostsCount = Math.pow(2, 32 - cidr) - 2;
+        } else if (cidr === 31) {
+          firstUsableStr = networkStr;
+          lastUsableStr = broadcastStr;
+          usableHostsCount = 2;
+        } else {
+          firstUsableStr = networkStr;
+          lastUsableStr = networkStr;
+          usableHostsCount = 1;
+        }
+
+        document.getElementById("resNetmask").innerText = netmaskStr;
+        document.getElementById("resNetwork").innerText = networkStr;
+        document.getElementById("resFirst").innerText = firstUsableStr;
+        document.getElementById("resLast").innerText = lastUsableStr;
+        document.getElementById("resBroadcast").innerText = broadcastStr;
+        document.getElementById("resHosts").innerText = usableHostsCount.toLocaleString();
+        document.getElementById("resWildcard").innerText = wildcardStr;
+        calcResults.style.display = "block";
+      }
+
+      // --- Cisco IOS CLI Terminal Logic ---
+      const cliTerminal = document.getElementById("cliTerminal");
+      const cliOutput = document.getElementById("cliOutput");
+      const cliInput = document.getElementById("cliInput");
+      const cliPrompt = document.getElementById("cliPrompt");
+
+      let cliState = { hostname: "Switch", mode: "user", interfaceName: "" };
+      let cliInterfaces = {
+        "GigabitEthernet0/1": { ip: "unassigned", status: "administratively down" },
+        "GigabitEthernet0/2": { ip: "unassigned", status: "administratively down" },
+        "Vlan1": { ip: "unassigned", status: "up" }
+      };
+
+      function updateCliPrompt() {
+        if (cliState.mode === "user") cliPrompt.innerText = `${cliState.hostname}>`;
+        else if (cliState.mode === "privileged") cliPrompt.innerText = `${cliState.hostname}#`;
+        else if (cliState.mode === "config") cliPrompt.innerText = `${cliState.hostname}(config)#`;
+        else if (cliState.mode === "interface") cliPrompt.innerText = `${cliState.hostname}(config-if)#`;
+      }
+
+      cliInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const cmd = cliInput.value.trim();
+          cliInput.value = "";
+          const cmdLine = document.createElement("div");
+          cmdLine.innerHTML = `<strong>${cliPrompt.innerText}</strong> ${cmd}`;
+          cliOutput.appendChild(cmdLine);
+
+          if (cmd.length > 0) processCliCommand(cmd);
+          cliTerminal.scrollTop = cliTerminal.scrollHeight;
+        }
+      });
+
+      function processCliCommand(rawCmd) {
+        const tokens = rawCmd.split(/\s+/);
+        const primary = tokens[0].toLowerCase();
+        const args = tokens.slice(1);
+        const outputDiv = document.createElement("div");
+
+        if (primary === "?" || primary === "help") {
+          let helpText = "";
+          if (cliState.mode === "user") {
+            helpText = `<strong>enable</strong> - Turn on privileged commands<br><strong>exit</strong> - Exit connection<br><strong>help / ?</strong> - Show available commands`;
+          } else if (cliState.mode === "privileged") {
+            helpText = `<strong>configure terminal / conf t</strong> - Enter configuration mode<br><strong>disable</strong> - Back to User EXEC mode<br><strong>show ip interface brief</strong> - Display interface status<br><strong>clear</strong> - Clear console screen<br><strong>exit</strong> - Close session`;
+          } else if (cliState.mode === "config") {
+            helpText = `<strong>hostname [name]</strong> - Set router/switch hostname<br><strong>interface [name]</strong> - Select interface configuration<br><strong>exit / end</strong> - Return to Privileged EXEC<br><strong>no [command]</strong> - Negate a command`;
+          } else if (cliState.mode === "interface") {
+            helpText = `<strong>ip address [ip] [mask]</strong> - Assign IP to interface<br><strong>no shutdown</strong> - Enable interface<br><strong>shutdown</strong> - Disable interface<br><strong>exit</strong> - Return to config mode`;
+          }
+          outputDiv.innerHTML = helpText;
+          cliOutput.appendChild(outputDiv);
+          return;
+        }
+
+        if (primary === "clear") {
+          cliOutput.innerHTML = "";
+          return;
+        }
+
+        if (cliState.mode === "user") {
+          if (primary === "enable" || primary === "en") cliState.mode = "privileged";
+          else if (primary === "exit") outputDiv.innerText = "Connection closed by foreign host.";
+          else outputDiv.innerHTML = `% Unrecognized command or incomplete input. Type "?" for help.`;
+          cliOutput.appendChild(outputDiv);
+          updateCliPrompt();
+          return;
+        }
+
+        if (cliState.mode === "privileged") {
+          if (primary === "disable") cliState.mode = "user";
+          else if (primary === "configure" || (primary === "conf" && args[0] === "t")) {
+            cliState.mode = "config";
+            outputDiv.innerText = "Enter configuration commands, one per line. End with CNTL/Z.";
+            cliOutput.appendChild(outputDiv);
+          } else if (primary === "show" && args[0] === "ip" && args[1] === "interface" && args[2] === "brief") {
+            let table = `<br>Interface              IP-Address      OK? Method Status                Protocol<br>`;
+            for (const [name, data] of Object.entries(cliInterfaces)) {
+              table += `${name.padEnd(22, ' ')}${data.ip.padEnd(16, ' ')}YES manual ${data.status.padEnd(21, ' ')}up<br>`;
+            }
+            outputDiv.innerHTML = table;
+            cliOutput.appendChild(outputDiv);
+          } else if (primary === "exit") cliState.mode = "user";
+          else outputDiv.innerHTML = `% Unrecognized command.`;
+          cliOutput.appendChild(outputDiv);
+          updateCliPrompt();
+          return;
+        }
+
+        if (cliState.mode === "config") {
+          if (primary === "exit" || primary === "end") cliState.mode = "privileged";
+          else if (primary === "hostname") {
+            if (args[0]) cliState.hostname = args[0];
+            else outputDiv.innerText = "% Hostname parameter missing.";
+            cliOutput.appendChild(outputDiv);
+          } else if (primary === "interface" || primary === "int") {
+            const match = Object.keys(cliInterfaces).find(k => k.toLowerCase().includes(args[0].toLowerCase()));
+            if (match) {
+              cliState.mode = "interface";
+              cliState.interfaceName = match;
+            } else {
+              outputDiv.innerText = "% Invalid interface format.";
+              cliOutput.appendChild(outputDiv);
+            }
+          } else {
+            outputDiv.innerText = "% Invalid config directive.";
+            cliOutput.appendChild(outputDiv);
+          }
+          updateCliPrompt();
+          return;
+        }
+
+        if (cliState.mode === "interface") {
+          if (primary === "exit") {
+            cliState.mode = "config";
+            cliState.interfaceName = "";
+          } else if (primary === "ip" && args[0] === "address" && args[1]) {
+            if (validateIp(args[1]) && validateIp(args[2])) {
+              cliInterfaces[cliState.interfaceName].ip = args[1];
+              outputDiv.innerText = `% IP address ${args[1]} assigned successfully to ${cliState.interfaceName}`;
+            } else {
+              outputDiv.innerText = "% Subnet/Mask format error.";
+            }
+            cliOutput.appendChild(outputDiv);
+          } else if (primary === "no" && args[0] === "shutdown") {
+            cliInterfaces[cliState.interfaceName].status = "up";
+            outputDiv.innerText = `%LINK-3-UPDOWN: Interface ${cliState.interfaceName}, changed state to up`;
+            cliOutput.appendChild(outputDiv);
+          } else if (primary === "shutdown") {
+            cliInterfaces[cliState.interfaceName].status = "administratively down";
+            outputDiv.innerText = `%LINK-5-CHANGED: Interface ${cliState.interfaceName}, changed state to administratively down`;
+            cliOutput.appendChild(outputDiv);
+          } else {
+            outputDiv.innerText = "% Command unrecognized on port interface.";
+            cliOutput.appendChild(outputDiv);
+          }
+          updateCliPrompt();
+          return;
+        }
+      }
+
+      // ==========================================
+      // --- Shared Live Whiteboard JavaScript ---
+      // ==========================================
+      const boardDrawer = document.getElementById("boardDrawer");
+      const toolBoardBtn = document.getElementById("toolBoardBtn");
+      const closeBoardDrawer = document.getElementById("closeBoardDrawer");
+      const boardBadge = document.getElementById("boardBadge");
+      const canvas = document.getElementById("whiteboardCanvas");
+      const statusText = document.getElementById("boardConnectionStatus");
+
+      if (boardDrawer && canvas) {
+        let ctx = canvas.getContext("2d");
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        const isBoardAdmin = "{% if user.is_superuser or user.is_staff or user.profile.role == 'admin' %}true{% else %}false{% endif %}" === "true";
+        
+        let drawing = false;
+        let currentTool = "pen";
+        let currentColor = "#3b82f6";
+        let currentSize = 5;
+        let lastX = 0;
+        let lastY = 0;
+        let startX = 0;
+        let startY = 0;
+        let savedSnapshot = null;
+        let boardSocket = null;
+        let reconnectInterval = null;
+
+        // Viewport and History State Variables
+        let localHistory = [];
+        let undoStack = []; // stores local admin stroke packets
+        let redoStack = []; // stores undone stroke IDs/packets
+        let scale = 1.0;
+        let offsetX = 0;
+        let offsetY = 0;
+        let showGrid = false;
+        const imageCache = {};
+
+        // Establish WebSocket Connection
+        function connectWebSocket() {
+          const wsScheme = window.location.protocol === "https:" ? "wss://" : "ws://";
+          const wsUrl = wsScheme + window.location.hostname + ":8001";
+          
+          boardSocket = new WebSocket(wsUrl);
+
+          boardSocket.onopen = () => {
+            statusText.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background-color: var(--success); border-radius: 50%;"></span> Live`;
+            statusText.style.color = "var(--success)";
+            if (reconnectInterval) {
+              clearInterval(reconnectInterval);
+              reconnectInterval = null;
+            }
+          };
+
+          boardSocket.onclose = () => {
+            statusText.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background-color: var(--error); border-radius: 50%;"></span> Reconnecting...`;
+            statusText.style.color = "var(--text-muted)";
+            if (!reconnectInterval) {
+              reconnectInterval = setInterval(connectWebSocket, 3000);
+            }
+          };
+
+          boardSocket.onerror = (err) => {
+            console.error("Whiteboard socket error: ", err);
+          };
+
+          boardSocket.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            handleBoardMessage(data);
+          };
+        }
+
+        // Message processor
+        function handleBoardMessage(data) {
+          if (data.type === "history") {
+            localHistory = data.history;
+            redrawCanvas();
+          } else if (data.type === "clear") {
+            localHistory = [];
+            redrawCanvas();
+          } else if (data.type === "undo") {
+            localHistory = localHistory.filter(item => item.strokeId !== data.strokeId);
+            redrawCanvas();
+          } else if (data.type === "pointer") {
+            updateInstructorCursor(data.x, data.y);
+          } else {
+            localHistory.push(data);
+            drawItem(data);
+            // Notify student of live activity if board is closed
+            if (!isBoardAdmin && boardDrawer && !boardDrawer.classList.contains("open") && boardBadge) {
+              boardBadge.style.display = "block";
+            }
+          }
+        }
+
+        // Transforms wrapper for rendering a single drawing item on the fly
+        function drawItem(item) {
+          ctx.save();
+          ctx.scale(scale, scale);
+          ctx.translate(offsetX, offsetY);
+          drawItemRaw(item);
+          ctx.restore();
+        }
+
+        // Raw drawing function inside virtual 1200x900 space
+        function drawItemRaw(item) {
+          if (item.type === "draw") {
+            ctx.beginPath();
+            ctx.moveTo(item.x0, item.y0);
+            ctx.lineTo(item.x1, item.y1);
+            if (item.tool === "eraser") {
+              ctx.globalCompositeOperation = "destination-out";
+              ctx.lineWidth = item.size * 2;
+            } else {
+              ctx.globalCompositeOperation = "source-over";
+              ctx.strokeStyle = getStrokeStyle(item.color, item.tool);
+              ctx.lineWidth = item.size;
+            }
+            ctx.stroke();
+            ctx.globalCompositeOperation = "source-over"; // restore
+          } else if (item.type === "text") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = item.color;
+            ctx.font = `${item.size}px 'Inter', system-ui, -apple-system, sans-serif`;
+            ctx.fillText(item.text, item.x, item.y);
+          } else if (item.type === "shape") {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = item.color;
+            ctx.lineWidth = item.size;
+            if (item.shape === "rect") {
+              ctx.beginPath();
+              ctx.rect(item.x0, item.y0, item.x1 - item.x0, item.y1 - item.y0);
+              if (item.fill) {
+                ctx.fillStyle = item.color;
+                ctx.fill();
+              }
+              ctx.stroke();
+            } else if (item.shape === "circle") {
+              const radius = Math.sqrt(Math.pow(item.x1 - item.x0, 2) + Math.pow(item.y1 - item.y0, 2));
+              ctx.beginPath();
+              ctx.arc(item.x0, item.y0, radius, 0, 2 * Math.PI);
+              if (item.fill) {
+                ctx.fillStyle = item.color;
+                ctx.fill();
+              }
+              ctx.stroke();
+            } else if (item.shape === "line") {
+              ctx.beginPath();
+              ctx.moveTo(item.x0, item.y0);
+              ctx.lineTo(item.x1, item.y1);
+              ctx.stroke();
+            } else if (item.shape === "arrow") {
+              drawArrow(ctx, item.x0, item.y0, item.x1, item.y1, item.size, item.color);
+            } else if (item.shape === "triangle") {
+              drawTriangle(ctx, item.x0, item.y0, item.x1, item.y1, item.fill, item.color);
+            }
+          } else if (item.type === "image") {
+            ctx.globalCompositeOperation = "source-over";
+            if (imageCache[item.src]) {
+              ctx.drawImage(imageCache[item.src], item.x, item.y, item.w, item.h);
+            } else {
+              const img = new Image();
+              img.src = item.src;
+              img.onload = () => {
+                imageCache[item.src] = img;
+                redrawCanvas();
+              };
+            }
+          }
+        }
+
+        // Stroke styling helper for marker tools
+        function getStrokeStyle(color, tool) {
+          if (tool === "marker") {
+            if (color.startsWith("#")) {
+              const r = parseInt(color.slice(1, 3), 16);
+              const g = parseInt(color.slice(3, 5), 16);
+              const b = parseInt(color.slice(5, 7), 16);
+              return `rgba(${r}, ${g}, ${b}, 0.35)`;
+            }
+            return color;
+          }
+          return color;
+        }
+
+        // Draw Helper - Arrows
+        function drawArrow(ctx, x0, y0, x1, y1, size, color) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = size;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y1);
+          ctx.stroke();
+
+          const angle = Math.atan2(y1 - y0, x1 - x0);
+          const headLength = Math.max(12, size * 2.5);
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x1 - headLength * Math.cos(angle - Math.PI / 6), y1 - headLength * Math.sin(angle - Math.PI / 6));
+          ctx.lineTo(x1 - headLength * Math.cos(angle + Math.PI / 6), y1 - headLength * Math.sin(angle + Math.PI / 6));
+          ctx.closePath();
+          ctx.fillStyle = color;
+          ctx.fill();
+        }
+
+        // Draw Helper - Triangles
+        function drawTriangle(ctx, x0, y0, x1, y1, fill, color) {
+          ctx.strokeStyle = color;
+          ctx.beginPath();
+          ctx.moveTo((x0 + x1) / 2, y0);
+          ctx.lineTo(x0, y1);
+          ctx.lineTo(x1, y1);
+          ctx.closePath();
+          if (fill) {
+            ctx.fillStyle = color;
+            ctx.fill();
+          }
+          ctx.stroke();
+        }
+
+        // Canvas full refresh renderer
+        function redrawCanvas() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.save();
+          ctx.scale(scale, scale);
+          ctx.translate(offsetX, offsetY);
+          
+          if (showGrid) {
+            drawGrid();
+          }
+          
+          localHistory.forEach(item => drawItemRaw(item));
+          ctx.restore();
+        }
+
+        // Figma-style dotted grid background generator
+        function drawGrid() {
+          ctx.fillStyle = document.documentElement.getAttribute("data-theme") === "light" 
+            ? "rgba(0, 0, 0, 0.15)" 
+            : "rgba(255, 255, 255, 0.15)";
+          const gridSize = 40;
+          
+          const left = -offsetX - gridSize;
+          const right = -offsetX + (canvas.width / scale) + gridSize;
+          const top = -offsetY - gridSize;
+          const bottom = -offsetY + (canvas.height / scale) + gridSize;
+          
+          const startX = Math.floor(left / gridSize) * gridSize;
+          const startY = Math.floor(top / gridSize) * gridSize;
+          
+          for (let x = startX; x < right; x += gridSize) {
+            for (let y = startY; y < bottom; y += gridSize) {
+              ctx.beginPath();
+              ctx.arc(x, y, 1.2 / scale, 0, 2 * Math.PI);
+              ctx.fill();
+            }
+          }
+        }
+
+        // Live cursor drawing helper
+        function updateInstructorCursor(x, y) {
+          const parent = canvas.parentElement;
+          if (!parent) return;
+          
+          let cursorEl = document.getElementById("instructorCursor");
+          if (!cursorEl) {
+            cursorEl = document.createElement("div");
+            cursorEl.id = "instructorCursor";
+            cursorEl.style.position = "absolute";
+            cursorEl.style.zIndex = "1000";
+            cursorEl.style.pointerEvents = "none";
+            cursorEl.style.transition = "left 0.08s ease, top 0.08s ease";
+            
+            cursorEl.innerHTML = `
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                <path d="M4.5 3V17L9.5 12.5L14.5 19L16.5 17.5L11.5 11L16.5 9.5L4.5 3Z" fill="#ff4b4b" stroke="#ffffff" stroke-width="2"/>
+              </svg>
+              <span style="background-color: #ff4b4b; color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 10px; box-shadow: var(--shadow-sm); border: 1px solid #ffffff; white-space: nowrap;">Instructor</span>
+            `;
+            parent.appendChild(cursorEl);
+          }
+          
+          if (cursorEl.hideTimeout) {
+            clearTimeout(cursorEl.hideTimeout);
+          }
+          
+          const rect = canvas.getBoundingClientRect();
+          const baseCanvasX = (x + offsetX) * scale;
+          const baseCanvasY = (y + offsetY) * scale;
+          
+          const screenX = baseCanvasX * (rect.width / canvas.width);
+          const screenY = baseCanvasY * (rect.height / canvas.height);
+          
+          cursorEl.style.left = `${screenX}px`;
+          cursorEl.style.top = `${screenY}px`;
+          cursorEl.style.display = "flex";
+          cursorEl.style.alignItems = "center";
+          
+          cursorEl.hideTimeout = setTimeout(() => {
+            cursorEl.style.display = "none";
+          }, 3000);
+        }
+
+        // Initialize connection
+        connectWebSocket();
+
+        // Toggle board open
+        if (toolBoardBtn) {
+          toolBoardBtn.addEventListener("click", () => {
+            boardDrawer.classList.add("open");
+            backdrop.classList.add("show");
+            if (boardBadge) boardBadge.style.display = "none";
+          });
+        }
+
+        if (closeBoardDrawer) {
+          closeBoardDrawer.addEventListener("click", () => {
+            boardDrawer.classList.remove("open");
+            if (!sidebar.classList.contains("open") && !subnetDrawer.classList.contains("open") && !cliDrawer.classList.contains("open")) {
+              backdrop.classList.remove("show");
+            }
+          });
+        }
+
+        // Coordinate mapper with inverse scale & pan transforms
+        function getCanvasCoords(e) {
+          const rect = canvas.getBoundingClientRect();
+          let clientX = 0;
+          let clientY = 0;
+
+          if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+          } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+          } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+          }
+
+          const clickX_px = clientX - rect.left;
+          const clickY_px = clientY - rect.top;
+          
+          const baseCanvasX = clickX_px * (canvas.width / rect.width);
+          const baseCanvasY = clickY_px * (canvas.height / rect.height);
+          
+          const x = baseCanvasX / scale - offsetX;
+          const y = baseCanvasY / scale - offsetY;
+          return { x, y };
+        }
+
+        // Admin drawing implementation
+        if (isBoardAdmin) {
+          // Tool settings handlers
+          const brushSize = document.getElementById("brushSize");
+          const brushSizeVal = document.getElementById("brushSizeVal");
+          const clearBtn = document.getElementById("clearBoardBtn");
+          const toolBtns = document.querySelectorAll(".tool-btn");
+          const colorSwatches = document.querySelectorAll(".color-swatch");
+          const customColorPicker = document.getElementById("customColorPicker");
+
+          if (brushSize) {
+            brushSize.addEventListener("input", (e) => {
+              currentSize = parseInt(e.target.value);
+              brushSizeVal.innerText = currentSize;
+            });
+          }
+
+          toolBtns.forEach(btn => {
+            btn.addEventListener("click", () => {
+              toolBtns.forEach(b => b.classList.remove("active"));
+              btn.classList.add("active");
+              currentTool = btn.getAttribute("data-tool");
+            });
+          });
+
+          colorSwatches.forEach(swatch => {
+            swatch.addEventListener("click", () => {
+              colorSwatches.forEach(s => s.classList.remove("active"));
+              swatch.classList.add("active");
+              currentColor = swatch.getAttribute("data-color");
+              customColorPicker.value = currentColor;
+            });
+          });
+
+          if (customColorPicker) {
+            customColorPicker.addEventListener("input", (e) => {
+              currentColor = e.target.value;
+              colorSwatches.forEach(s => s.classList.remove("active"));
+            });
+          }
+
+          if (clearBtn) {
+            clearBtn.addEventListener("click", () => {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              sendBoardData({ type: "clear" });
+            });
+          }
+
+          function sendBoardData(data) {
+            if (boardSocket && boardSocket.readyState === WebSocket.OPEN) {
+              boardSocket.send(JSON.stringify(data));
+            }
+          }
+
+          // Main canvas listeners
+          canvas.addEventListener("mousedown", startDrawing);
+          canvas.addEventListener("mousemove", draw);
+          canvas.addEventListener("mouseup", stopDrawing);
+          canvas.addEventListener("mouseleave", stopDrawing);
+
+          canvas.addEventListener("touchstart", (e) => { e.preventDefault(); startDrawing(e); }, { passive: false });
+          canvas.addEventListener("touchmove", (e) => { e.preventDefault(); draw(e); }, { passive: false });
+          canvas.addEventListener("touchend", (e) => { e.preventDefault(); stopDrawing(e); }, { passive: false });
+
+          let currentStrokeId = null;
+
+          function startDrawing(e) {
+            console.error("startDrawing called, currentTool:", currentTool);
+            const coords = getCanvasCoords(e);
+            
+            if (currentTool === "pan") {
+              drawing = true;
+              const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+              const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+              startX = clientX;
+              startY = clientY;
+            } else if (["pen", "pencil", "brush", "marker", "eraser"].includes(currentTool)) {
+              drawing = true;
+              lastX = coords.x;
+              lastY = coords.y;
+              currentStrokeId = "stroke_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+            } else if (["rect", "circle", "line", "arrow", "triangle"].includes(currentTool)) {
+              drawing = true;
+              startX = coords.x;
+              startY = coords.y;
+              savedSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            } else if (currentTool === "text") {
+              const rect = canvas.getBoundingClientRect();
+              const container = canvas.parentElement;
+              
+              const existingInput = container.querySelector(".dynamic-text-input");
+              if (existingInput) existingInput.remove();
+
+              const textInput = document.createElement("input");
+              textInput.type = "text";
+              textInput.className = "dynamic-text-input";
+              
+              const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+              const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+              const clickX_px = clientX - rect.left;
+              const clickY_px = clientY - rect.top;
+
+              const fontSize = Math.max(16, currentSize * 3);
+
+              textInput.style.position = "absolute";
+              textInput.style.left = `${canvas.offsetLeft + clickX_px}px`;
+              textInput.style.top = `${canvas.offsetTop + clickY_px - 10}px`;
+              textInput.style.font = `${fontSize}px 'Inter', system-ui, -apple-system, sans-serif`;
+              textInput.style.color = currentColor;
+              textInput.style.background = "var(--bg-app)";
+              textInput.style.border = "1px solid var(--accent)";
+              textInput.style.borderRadius = "4px";
+              textInput.style.padding = "2px 6px";
+              textInput.style.outline = "none";
+              textInput.style.zIndex = "1000";
+
+              container.appendChild(textInput);
+              textInput.focus();
+
+              function submitText() {
+                const val = textInput.value.trim();
+                if (val.length > 0) {
+                  const strokeId = "stroke_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+                  const textPacket = {
+                    type: "text",
+                    text: val,
+                    x: coords.x,
+                    y: coords.y,
+                    color: currentColor,
+                    size: fontSize,
+                    strokeId: strokeId
+                  };
+                  
+                  localHistory.push(textPacket);
+                  drawItem(textPacket);
+                  sendBoardData(textPacket);
+                  
+                  undoStack.push(strokeId);
+                  redoStack = [];
+                }
+                textInput.remove();
+              }
+
+              textInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") submitText();
+                else if (e.key === "Escape") textInput.remove();
+              });
+
+              textInput.addEventListener("blur", submitText);
+            }
+          }
+
+          function draw(e) {
+            if (!drawing) return;
+            const coords = getCanvasCoords(e);
+
+            if (currentTool === "pan") {
+              const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+              const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+              const dx = clientX - startX;
+              const dy = clientY - startY;
+              
+              offsetX += dx / scale;
+              offsetY += dy / scale;
+              
+              startX = clientX;
+              startY = clientY;
+              redrawCanvas();
+            } else if (["pen", "pencil", "brush", "marker", "eraser"].includes(currentTool)) {
+              ctx.save();
+              ctx.scale(scale, scale);
+              ctx.translate(offsetX, offsetY);
+              
+              ctx.beginPath();
+              ctx.moveTo(lastX, lastY);
+              ctx.lineTo(coords.x, coords.y);
+              
+              let finalSize = currentSize;
+              if (currentTool === "pencil") finalSize = Math.max(1, Math.round(currentSize / 2.5));
+              else if (currentTool === "brush") finalSize = Math.max(8, currentSize * 2);
+              else if (currentTool === "marker") finalSize = Math.max(12, currentSize * 2.5);
+              
+              if (currentTool === "eraser") {
+                ctx.globalCompositeOperation = "destination-out";
+                ctx.lineWidth = currentSize * 2;
+              } else {
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = getStrokeStyle(currentColor, currentTool);
+                ctx.lineWidth = finalSize;
+              }
+              ctx.stroke();
+              ctx.restore();
+
+              // Broadcast coordinate segment
+              sendBoardData({
+                type: "draw",
+                tool: currentTool,
+                x0: lastX,
+                y0: lastY,
+                x1: coords.x,
+                y1: coords.y,
+                color: currentColor,
+                size: finalSize,
+                strokeId: currentStrokeId
+              });
+
+              lastX = coords.x;
+              lastY = coords.y;
+            } else if (["rect", "circle", "line", "arrow", "triangle"].includes(currentTool)) {
+              ctx.putImageData(savedSnapshot, 0, 0);
+              
+              ctx.save();
+              ctx.scale(scale, scale);
+              ctx.translate(offsetX, offsetY);
+              
+              ctx.strokeStyle = currentColor;
+              ctx.lineWidth = currentSize;
+              
+              const fill = document.getElementById("shapeFill")?.checked || false;
+              
+              if (currentTool === "rect") {
+                ctx.beginPath();
+                ctx.rect(startX, startY, coords.x - startX, coords.y - startY);
+                if (fill) {
+                  ctx.fillStyle = currentColor;
+                  ctx.fill();
+                }
+                ctx.stroke();
+              } else if (currentTool === "circle") {
+                const radius = Math.sqrt(Math.pow(coords.x - startX, 2) + Math.pow(coords.y - startY, 2));
+                ctx.beginPath();
+                ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                if (fill) {
+                  ctx.fillStyle = currentColor;
+                  ctx.fill();
+                }
+                ctx.stroke();
+              } else if (currentTool === "line") {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(coords.x, coords.y);
+                ctx.stroke();
+              } else if (currentTool === "arrow") {
+                drawArrow(ctx, startX, startY, coords.x, coords.y, currentSize, currentColor);
+              } else if (currentTool === "triangle") {
+                drawTriangle(ctx, startX, startY, coords.x, coords.y, fill, currentColor);
+              }
+              ctx.restore();
+            }
+          }
+
+          function stopDrawing(e) {
+            if (!drawing) return;
+            drawing = false;
+
+            const coords = getCanvasCoords(e);
+            
+            if (currentTool === "pan") {
+              // drag complete
+            } else if (["pen", "pencil", "brush", "marker", "eraser"].includes(currentTool)) {
+              if (currentStrokeId) {
+                undoStack.push(currentStrokeId);
+                redoStack = [];
+                currentStrokeId = null;
+              }
+            } else if (["rect", "circle", "line", "arrow", "triangle"].includes(currentTool)) {
+              ctx.putImageData(savedSnapshot, 0, 0);
+              
+              const fill = document.getElementById("shapeFill")?.checked || false;
+              const strokeId = "stroke_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+              
+              const shapePacket = {
+                type: "shape",
+                shape: currentTool,
+                x0: startX,
+                y0: startY,
+                x1: coords.x,
+                y1: coords.y,
+                color: currentColor,
+                size: currentSize,
+                fill: fill,
+                strokeId: strokeId
+              };
+              
+              localHistory.push(shapePacket);
+              drawItem(shapePacket);
+              sendBoardData(shapePacket);
+              
+              undoStack.push(strokeId);
+              redoStack = [];
+            }
+          }
+        }
+
+        // Expose whiteboard state and methods globally for admin page integration
+        window.whiteboard = {
+          get scale() { return scale; },
+          set scale(v) { scale = v; },
+          get offsetX() { return offsetX; },
+          set offsetX(v) { offsetX = v; },
+          get offsetY() { return offsetY; },
+          set offsetY(v) { offsetY = v; },
+          get showGrid() { return showGrid; },
+          set showGrid(v) { showGrid = v; },
+          get localHistory() { return localHistory; },
+          set localHistory(v) { localHistory = v; },
+          get undoStack() { return undoStack; },
+          set undoStack(v) { undoStack = v; },
+          get redoStack() { return redoStack; },
+          set redoStack(v) { redoStack = v; },
+          get currentTool() { return currentTool; },
+          set currentTool(v) { currentTool = v; },
+          get currentColor() { return currentColor; },
+          set currentColor(v) { currentColor = v; },
+          get currentSize() { return currentSize; },
+          set currentSize(v) { currentSize = v; },
+          get ctx() { return ctx; },
+          set ctx(v) { ctx = v; },
+          redrawCanvas: redrawCanvas,
+          drawItem: drawItem,
+          drawItemRaw: drawItemRaw,
+          sendBoardData: sendBoardData,
+          getCanvasCoords: getCanvasCoords
+        };
+      }
+    });
+  </script>
+  
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,94 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Admin Panel</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Student Management</span>
+{% endblock %}
+
+{% block content %}
+<div class="lesson-card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="lesson-title" style="margin-bottom: 6px;">Student Accounts Management</h2>
+      <p class="dashboard-subtitle" style="margin-bottom: 0; font-size: 14px;">Create, update, or remove student logins and monitor study metrics.</p>
+    </div>
+    <a href="{% url 'admin_create_student' %}" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
+      <i data-lucide="user-plus" style="width: 16px; height: 16px; margin-right: 8px;"></i>
+      Add New Student
+    </a>
+  </div>
+
+  <div style="overflow-x: auto; margin-top: 20px; border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--bg-app);">
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; line-height: 1.5;">
+      <thead>
+        <tr style="background-color: var(--bg-card); border-bottom: 1px solid var(--border-color);">
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary);">Student Username</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary);">Email</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); text-align: center;">Lesson & Quiz Progress</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); text-align: center;">Quiz Avg</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); text-align: center;">Mocks (Count/High)</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary);">Last Login</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if students %}
+          {% for student in students %}
+            <tr style="border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease;" onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.02)'" onmouseout="this.style.backgroundColor='transparent'">
+              <td style="padding: 16px; font-weight: 600; color: var(--text-primary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="user" style="width: 16px; height: 16px; color: var(--accent);"></i>
+                  {{ student.user.username }}
+                </div>
+              </td>
+              <td style="padding: 16px; color: var(--text-secondary);">
+                {{ student.user.email|default:"—" }}
+              </td>
+              <td style="padding: 16px; text-align: center;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                  <div style="flex: 1; max-width: 80px; height: 6px; background-color: var(--border-color); border-radius: 3px; overflow: hidden;">
+                    <div style="height: 100%; background-color: var(--success); width: {{ student.progress_percent }}%;"></div>
+                  </div>
+                  <span style="font-weight: bold; color: var(--success);">{{ student.progress_percent }}%</span>
+                </div>
+              </td>
+              <td style="padding: 16px; text-align: center; font-weight: 600; color: {% if student.avg_score >= 70 %}var(--success){% elif student.avg_score > 0 %}var(--warning){% else %}var(--text-muted){% endif %};">
+                {{ student.avg_score }}%
+              </td>
+              <td style="padding: 16px; text-align: center; color: var(--text-secondary);">
+                <span style="font-weight: 600; color: var(--text-primary);">{{ student.mock_count }}</span>
+                <span style="color: var(--text-muted);">/</span>
+                <span style="font-weight: 600; color: var(--accent);">{{ student.highest_mock }}%</span>
+              </td>
+              <td style="padding: 16px; color: var(--text-muted); font-size: 13px;">
+                {% if student.last_login %}
+                  {{ student.last_login|date:"M d, Y H:i" }}
+                {% else %}
+                  Never active
+                {% endif %}
+              </td>
+              <td style="padding: 16px; text-align: right;">
+                <div style="display: inline-flex; gap: 12px; align-items: center;">
+                  <a href="{% url 'admin_edit_student' student.user.id %}" title="Edit Student" style="color: var(--accent); display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 13px;">
+                    <i data-lucide="edit" style="width: 14px; height: 14px;"></i> Edit
+                  </a>
+                  <a href="{% url 'admin_delete_student' student.user.id %}" title="Delete Student" style="color: var(--error); display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 13px;">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="padding: 30px; text-align: center; color: var(--text-muted);">
+              No student accounts found. Click "Add New Student" to create one.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
