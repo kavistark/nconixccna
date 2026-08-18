@@ -1,6 +1,8 @@
 import re
 import json
 import random
+import requests
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
@@ -8,7 +10,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db.models import Avg, Sum
-from core.models import Domain, Topic, Question, UserProgress, MockExamResult
+from core.models import Domain, Topic, Question, UserProgress, MockExamResult, AdditionalTopic
 from core.decorators import admin_required
 
 # --- Helper: Markdown to HTML Parser ---
@@ -461,5 +463,127 @@ def mock_exam_submit_view(request):
         })
         
     return JsonResponse({'status': 'invalid method'}, status=400)
+
+
+@login_required
+def additional_topic_detail_view(request, topic_id):
+    topic = get_object_or_404(AdditionalTopic, id=topic_id)
+    parsed_content = parse_markdown(topic.content)
+    sidebar_domains = get_sidebar_data(request.user)
+    
+    context = {
+        'topic': topic,
+        'parsed_content': parsed_content,
+        'sidebar_domains': sidebar_domains,
+        'current_atopic_id': topic.id,
+        'active_page': 'additional_topic_detail',
+    }
+    return render(request, 'core/additional_topic_detail.html', context)
+
+
+@login_required
+def tutor_bot_view(request):
+    sidebar_domains = get_sidebar_data(request.user)
+    context = {
+        'sidebar_domains': sidebar_domains,
+        'active_page': 'tutor_bot',
+    }
+    return render(request, 'core/tutor_bot.html', context)
+
+
+@login_required
+def tutor_chat_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_message = data.get('message', '').strip()
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON request'}, status=400)
+
+        if not user_message:
+            return JsonResponse({'error': 'Message is empty'}, status=400)
+
+        api_key = getattr(settings, 'GEMINI_API_KEY', '')
+        model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-3.7-flash')
+
+        if not api_key:
+            return JsonResponse({'error': 'Gemini API key is not configured.'}, status=500)
+
+        history = data.get('history', [])
+        contents = []
+        for msg in history:
+            role = 'user' if msg.get('role') == 'user' else 'model'
+            text = msg.get('text', '').strip()
+            if text:
+                contents.append({
+                    "role": role,
+                    "parts": [{"text": text}]
+                })
+        
+        if not contents or contents[-1].get('role') != 'user':
+            contents.append({
+                "role": "user",
+                "parts": [{"text": user_message}]
+            })
+
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        response = None
+        used_model = model_name
+        fallback_models = ['gemini-3.6-flash']
+
+        for model in [model_name] + fallback_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            payload = {
+                "contents": contents,
+                "systemInstruction": {
+                    "parts": [{
+                        "text": "You are a professional CCNA and computer networking expert tutor. Answer the student's questions clearly, concisely, and accurately. Provide examples, packet headers, or Cisco commands where relevant to explain networking concepts. Format your responses in clean HTML or Markdown."
+                    }]
+                }
+            }
+            try:
+                res = requests.post(url, headers=headers, params={"key": api_key}, json=payload, timeout=30)
+                if res.status_code == 200:
+                    response = res
+                    used_model = model
+                    break
+                else:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Gemini API returned status {res.status_code} for model {model}. Body: {res.text}. Trying next model...")
+            except requests.exceptions.RequestException as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error calling Gemini with model {model}: {e}. Trying next model...")
+
+        if response is None:
+            return JsonResponse({'error': 'Failed to communicate with Gemini API (all models exhausted/unavailable).'}, status=500)
+
+        try:
+            res_data = response.json()
+            candidates = res_data.get('candidates', [])
+            if candidates:
+                content_obj = candidates[0].get('content', {})
+                parts = content_obj.get('parts', [])
+                if parts:
+                    ai_reply = parts[0].get('text', '')
+                    ai_reply_html = parse_markdown(ai_reply)
+                    return JsonResponse({
+                        'reply': ai_reply,
+                        'reply_html': ai_reply_html,
+                        'model_used': used_model
+                    })
+            
+            return JsonResponse({'error': 'No response candidate returned from Gemini.'}, status=500)
+            
+        except Exception as e:
+            return JsonResponse({'error': f"Failed to parse response: {str(e)}"}, status=500)
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
 
 

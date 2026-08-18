@@ -1,0 +1,89 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Admin Panel</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Additional Topics</span>
+{% endblock %}
+
+{% block content %}
+<div class="lesson-card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="lesson-title" style="margin-bottom: 6px;">Additional Topics Management</h2>
+      <p class="dashboard-subtitle" style="margin-bottom: 0; font-size: 14px;">Add extra topics with title name, paragraph contents, and images for students to reference.</p>
+    </div>
+    <a href="{% url 'admin_additional_topic_add' %}" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
+      <i data-lucide="plus-circle" style="width: 16px; height: 16px; margin-right: 8px;"></i>
+      Add New Topic
+    </a>
+  </div>
+
+  <div style="overflow-x: auto; margin-top: 20px; border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--bg-app);">
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; line-height: 1.5;">
+      <thead>
+        <tr style="background-color: var(--bg-card); border-bottom: 1px solid var(--border-color);">
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); width: 30%;">Topic Title</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); width: 30%;">Content Preview</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); text-align: center; width: 15%;">Images</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); width: 15%;">Date Created</th>
+          <th style="padding: 16px; font-weight: 600; color: var(--text-primary); text-align: right; width: 10%;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if topics %}
+          {% for topic in topics %}
+            <tr style="border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease;" onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.02)'" onmouseout="this.style.backgroundColor='transparent'">
+              <td style="padding: 16px; font-weight: 600; color: var(--text-primary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="book-open" style="width: 16px; height: 16px; color: var(--accent);"></i>
+                  {{ topic.title }}
+                </div>
+              </td>
+              <td style="padding: 16px; color: var(--text-secondary);">
+                {{ topic.content|truncatechars:60 }}
+              </td>
+              <td style="padding: 16px; text-align: center;">
+                <div style="display: inline-flex; gap: 4px; justify-content: center; align-items: center;">
+                  {% if topic.image1 or topic.image2 or topic.image3 %}
+                    {% if topic.image1 %}
+                      <i data-lucide="image" style="width: 14px; height: 14px; color: var(--success);" title="Image 1 present"></i>
+                    {% endif %}
+                    {% if topic.image2 %}
+                      <i data-lucide="image" style="width: 14px; height: 14px; color: var(--success);" title="Image 2 present"></i>
+                    {% endif %}
+                    {% if topic.image3 %}
+                      <i data-lucide="image" style="width: 14px; height: 14px; color: var(--success);" title="Image 3 present"></i>
+                    {% endif %}
+                  {% else %}
+                    <span style="color: var(--text-muted); font-size: 12px;">None</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td style="padding: 16px; color: var(--text-muted); font-size: 13px;">
+                {{ topic.created_at|date:"M d, Y H:i" }}
+              </td>
+              <td style="padding: 16px; text-align: right;">
+                <div style="display: inline-flex; gap: 12px; align-items: center;">
+                  <a href="{% url 'admin_additional_topic_edit' topic.id %}" title="Edit Topic" style="color: var(--accent); display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 13px; text-decoration: none;">
+                    <i data-lucide="edit" style="width: 14px; height: 14px;"></i> Edit
+                  </a>
+                  <a href="{% url 'admin_additional_topic_delete' topic.id %}" title="Delete Topic" style="color: var(--error); display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 13px; text-decoration: none;">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" style="padding: 30px; text-align: center; color: var(--text-muted);">
+              No additional topics found. Click "Add New Topic" to create one.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

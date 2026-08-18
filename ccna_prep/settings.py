@@ -63,6 +63,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.additional_topics',
             ],
         },
     },
@@ -118,6 +119,15 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media files (uploaded by users/admin)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Redirect unauthorized users to login page
 LOGIN_URL = 'login'
+
+# Gemini API Settings
+GEMINI_API_KEY = "AIzaSyBE1x0eo9hrhlr9WgxUBV3Ek-MK39eYR1M"
+GEMINI_MODEL = "gemini-3.7-flash"
+
 

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CCNA Prep Platform</title>
+  <title>NConix CCNA VLab</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,7 +30,7 @@
       <div class="sidebar-header">
         <a href="{% url 'dashboard' %}" class="logo" style="text-decoration: none;">
           <i data-lucide="network" class="logo-icon"></i>
-          <span>CCNA <span class="accent-text">Prep</span></span>
+          <span>NConix CCNA <span class="accent-text">VLab</span></span>
         </a>
         <button class="theme-toggle" id="themeToggleBtn" title="Toggle Light/Dark Mode">
           <i data-lucide="sun" class="sun-icon"></i>
@@ -56,8 +56,8 @@
               <a href="{% url 'admin_stats' %}" class="nav-sub-item {% if active_page == 'admin_stats' %}active{% endif %}" style="padding-left: 20px; text-decoration: none;">
                 <span><i data-lucide="bar-chart-3" class="sub-item-icon"></i>Platform Statistics</span>
               </a>
-              <a href="{% url 'admin_board' %}" class="nav-sub-item {% if active_page == 'admin_board' %}active{% endif %}" style="padding-left: 20px; text-decoration: none;">
-                <span><i data-lucide="presentation" class="sub-item-icon"></i>Live Whiteboard</span>
+              <a href="{% url 'admin_additional_topics' %}" class="nav-sub-item {% if active_page == 'admin_additional_topics' %}active{% endif %}" style="padding-left: 20px; text-decoration: none;">
+                <span><i data-lucide="book-open" class="sub-item-icon"></i>Additional Topics</span>
               </a>
               <a href="/admin/" target="_blank" class="nav-sub-item" style="padding-left: 20px; text-decoration: none;">
                 <span><i data-lucide="settings" class="sub-item-icon"></i>Django Admin</span>
@@ -100,6 +100,17 @@
                 </div>
               {% endfor %}
             {% endfor %}
+            
+
+
+            {% if additional_topics %}
+              <div class="nav-section-title">ADDITIONAL STUDY TOPICS</div>
+              {% for atopic in additional_topics %}
+                <a href="{% url 'additional_topic_detail' atopic.id %}" class="nav-sub-item {% if active_page == 'additional_topic_detail' and current_atopic_id == atopic.id %}active{% endif %}" style="padding-left: 20px; text-decoration: none;">
+                  <span><i data-lucide="book-open" class="sub-item-icon"></i>{{ atopic.title }}</span>
+                </a>
+              {% endfor %}
+            {% endif %}
           {% else %}
             <div class="nav-section-title">GET STARTED</div>
             <a href="{% url 'login' %}" class="nav-sub-item" style="padding-left: 20px;">
@@ -148,6 +159,10 @@
                 <span class="board-badge" id="boardBadge" style="display: none; position: absolute; top: 6px; right: 8px; width: 8px; height: 8px; background-color: var(--error); border-radius: 50%;"></span>
               </button>
             {% endif %}
+            <a href="{% url 'tutor_bot' %}" class="header-btn {% if active_page == 'tutor_bot' %}highlight-btn{% endif %}" title="AI Networking Tutor" style="text-decoration: none;">
+              <i data-lucide="message-square"></i>
+              <span>AI Tutor</span>
+            </a>
             <a href="{% url 'dashboard' %}" class="header-btn {% if active_page == 'dashboard' %}highlight-btn{% endif %}" style="text-decoration: none;">
               <i data-lucide="layout-dashboard"></i>
               <span>Dashboard</span>
@@ -1065,11 +1080,15 @@
               startY = coords.y;
               savedSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
             } else if (currentTool === "text") {
+              e.preventDefault(); // Prevent focus loss/selection on canvas
               const rect = canvas.getBoundingClientRect();
               const container = canvas.parentElement;
               
               const existingInput = container.querySelector(".dynamic-text-input");
-              if (existingInput) existingInput.remove();
+              if (existingInput) {
+                console.log("Removing existing text input");
+                existingInput.remove();
+              }
 
               const textInput = document.createElement("input");
               textInput.type = "text";
@@ -1081,10 +1100,11 @@
               const clickY_px = clientY - rect.top;
 
               const fontSize = Math.max(16, currentSize * 3);
+              const containerRect = container.getBoundingClientRect();
 
               textInput.style.position = "absolute";
-              textInput.style.left = `${canvas.offsetLeft + clickX_px}px`;
-              textInput.style.top = `${canvas.offsetTop + clickY_px - 10}px`;
+              textInput.style.left = `${clientX - containerRect.left}px`;
+              textInput.style.top = `${clientY - containerRect.top - 10}px`;
               textInput.style.font = `${fontSize}px 'Inter', system-ui, -apple-system, sans-serif`;
               textInput.style.color = currentColor;
               textInput.style.background = "var(--bg-app)";
@@ -1094,8 +1114,13 @@
               textInput.style.outline = "none";
               textInput.style.zIndex = "1000";
 
+              console.log("Appended text input at left:", textInput.style.left, "top:", textInput.style.top);
               container.appendChild(textInput);
-              textInput.focus();
+              
+              // Use setTimeout to ensure focus is applied after DOM insertion
+              setTimeout(() => {
+                textInput.focus();
+              }, 10);
 
               function submitText() {
                 const val = textInput.value.trim();

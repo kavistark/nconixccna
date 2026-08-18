@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.db.models import Avg, Sum
-from core.models import Domain, Topic, Question, UserProgress, MockExamResult
+from core.models import Domain, Topic, Question, UserProgress, MockExamResult, AdditionalTopic
 from core.decorators import admin_required
 from core.views import get_sidebar_data
 
@@ -214,4 +214,112 @@ def admin_board_view(request):
         'active_page': 'admin_board',
     }
     return render(request, 'admin_panel/admin_board.html', context)
+
+
+# --- Additional Topics Management Views ---
+
+@admin_required
+def admin_additional_topics_list_view(request):
+    topics = AdditionalTopic.objects.all().order_by('created_at')
+    sidebar_domains = get_sidebar_data(request.user)
+    context = {
+        'topics': topics,
+        'sidebar_domains': sidebar_domains,
+        'active_page': 'admin_additional_topics',
+    }
+    return render(request, 'admin_panel/admin_additional_topics_list.html', context)
+
+
+@admin_required
+def admin_additional_topic_add_view(request):
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        image1 = request.FILES.get('image1')
+        image2 = request.FILES.get('image2')
+        image3 = request.FILES.get('image3')
+
+        if title and content:
+            AdditionalTopic.objects.create(
+                title=title,
+                content=content,
+                image1=image1,
+                image2=image2,
+                image3=image3
+            )
+            return redirect('admin_additional_topics')
+        else:
+            error_msg = "Title and Content are required."
+    else:
+        error_msg = None
+
+    sidebar_domains = get_sidebar_data(request.user)
+    context = {
+        'error_msg': error_msg,
+        'sidebar_domains': sidebar_domains,
+        'active_page': 'admin_additional_topics',
+        'is_edit': False
+    }
+    return render(request, 'admin_panel/admin_additional_topic_form.html', context)
+
+
+@admin_required
+def admin_additional_topic_edit_view(request, topic_id):
+    topic = get_object_or_404(AdditionalTopic, id=topic_id)
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        
+        # Check files
+        if 'image1' in request.FILES:
+            topic.image1 = request.FILES.get('image1')
+        if 'image2' in request.FILES:
+            topic.image2 = request.FILES.get('image2')
+        if 'image3' in request.FILES:
+            topic.image3 = request.FILES.get('image3')
+
+        # Check for image deletions
+        if request.POST.get('delete_image1') == 'true':
+            topic.image1 = None
+        if request.POST.get('delete_image2') == 'true':
+            topic.image2 = None
+        if request.POST.get('delete_image3') == 'true':
+            topic.image3 = None
+
+        if title and content:
+            topic.title = title
+            topic.content = content
+            topic.save()
+            return redirect('admin_additional_topics')
+        else:
+            error_msg = "Title and Content are required."
+    else:
+        error_msg = None
+
+    sidebar_domains = get_sidebar_data(request.user)
+    context = {
+        'topic': topic,
+        'error_msg': error_msg,
+        'sidebar_domains': sidebar_domains,
+        'active_page': 'admin_additional_topics',
+        'is_edit': True
+    }
+    return render(request, 'admin_panel/admin_additional_topic_form.html', context)
+
+
+@admin_required
+def admin_additional_topic_delete_view(request, topic_id):
+    topic = get_object_or_404(AdditionalTopic, id=topic_id)
+    if request.method == 'POST':
+        topic.delete()
+        return redirect('admin_additional_topics')
+        
+    sidebar_domains = get_sidebar_data(request.user)
+    context = {
+        'topic': topic,
+        'sidebar_domains': sidebar_domains,
+        'active_page': 'admin_additional_topics',
+    }
+    return render(request, 'admin_panel/admin_additional_topic_delete.html', context)
+
 

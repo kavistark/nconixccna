@@ -1,0 +1,259 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Study Helpers</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">AI Networking Tutor</span>
+{% endblock %}
+
+{% block content %}
+<div class="lesson-card" style="display: flex; flex-direction: column; height: calc(100vh - 160px); max-height: 750px; padding: 24px; box-sizing: border-box;">
+  
+  <!-- Header Section -->
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #8b5cf6); display: flex; align-items: center; justify-content: center; color: white;">
+        <i data-lucide="bot" style="width: 22px; height: 22px;"></i>
+      </div>
+      <div>
+        <h2 class="lesson-title" style="margin: 0; font-size: 18px; font-weight: 700;">AI Networking Tutor</h2>
+        <p class="dashboard-subtitle" style="margin: 0; font-size: 12px; color: var(--text-secondary);">Ask questions, check commands, or clarify CCNA concepts.</p>
+      </div>
+    </div>
+    <button id="clearChatBtn" class="btn" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary);">
+      <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Clear Chat
+    </button>
+  </div>
+
+  <!-- Messages Window -->
+  <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; scroll-behavior: smooth;">
+    <!-- Welcome message -->
+    <div class="chat-message-container assistant-msg" style="display: flex; gap: 12px; max-width: 80%; align-self: flex-start;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; background-color: var(--accent-transparent); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent);">
+        <i data-lucide="bot" style="width: 16px; height: 16px;"></i>
+      </div>
+      <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0 16px 16px 16px; padding: 14px 18px; color: var(--text-primary); font-size: 14px; line-height: 1.6; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        Hello! I am your AI Networking Tutor. I can help clear your doubts about CCNA topics, IP subnetting, Cisco commands, routing protocols (OSPF, EIGRP), and more. What would you like to discuss today?
+      </div>
+    </div>
+  </div>
+
+  <!-- Loader (hidden by default) -->
+  <div id="chatLoader" style="display: none; align-self: flex-start; gap: 12px; max-width: 80%; margin-left: 10px; margin-bottom: 16px;">
+    <div style="width: 32px; height: 32px; border-radius: 50%; background-color: var(--accent-transparent); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent);">
+      <i data-lucide="loader" class="animate-spin" style="width: 16px; height: 16px;"></i>
+    </div>
+    <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0 16px 16px 16px; padding: 12px 18px; display: flex; align-items: center; gap: 6px;">
+      <span style="font-size: 13px; color: var(--text-secondary);">Tutor is thinking</span>
+      <div style="display: flex; gap: 4px;">
+        <span class="pulse-dot" style="width: 6px; height: 6px; background-color: var(--accent); border-radius: 50%; animation: pulse 1.4s infinite 0s;"></span>
+        <span class="pulse-dot" style="width: 6px; height: 6px; background-color: var(--accent); border-radius: 50%; animation: pulse 1.4s infinite 0.2s;"></span>
+        <span class="pulse-dot" style="width: 6px; height: 6px; background-color: var(--accent); border-radius: 50%; animation: pulse 1.4s infinite 0.4s;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggestion Chips -->
+  <div id="suggestionChips" style="display: flex; gap: 10px; overflow-x: auto; padding: 6px 0; margin-bottom: 12px; flex-shrink: 0; white-space: nowrap; -webkit-overflow-scrolling: touch;">
+    <button class="chip" data-query="Explain IP Subnetting in simple terms." style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 20px; padding: 6px 14px; font-size: 12px; transition: all 0.2s ease; outline: none; font-weight: 500;">Explain Subnetting</button>
+    <button class="chip" data-query="How does OSPF find the shortest path?" style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 20px; padding: 6px 14px; font-size: 12px; transition: all 0.2s ease; outline: none; font-weight: 500;">OSPF Shortest Path</button>
+    <button class="chip" data-query="Explain the TCP 3-Way Handshake process." style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 20px; padding: 6px 14px; font-size: 12px; transition: all 0.2s ease; outline: none; font-weight: 500;">TCP 3-Way Handshake</button>
+    <button class="chip" data-query="What is the difference between a Router and a Switch?" style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 20px; padding: 6px 14px; font-size: 12px; transition: all 0.2s ease; outline: none; font-weight: 500;">Router vs Switch</button>
+  </div>
+
+  <!-- Input Area -->
+  <form id="chatForm" style="display: flex; gap: 12px; flex-shrink: 0; align-items: center;">
+    <input type="text" id="chatInput" autocomplete="off" placeholder="Ask a networking question or clear a doubt..." style="flex: 1; background: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 12px 16px; color: var(--text-primary); outline: none; font-size: 14px; line-height: 1.5; min-width: 0;">
+    <button type="submit" class="btn btn-primary" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius); padding: 0; flex-shrink: 0;">
+      <i data-lucide="send" style="width: 18px; height: 18px;"></i>
+    </button>
+  </form>
+
+</div>
+
+<style>
+  .assistant-msg strong {
+    font-weight: 700;
+  }
+  .assistant-msg blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+    margin-left: 0;
+    color: var(--text-secondary);
+  }
+  .assistant-msg pre {
+    background-color: var(--bg-app) !important;
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    border-radius: var(--radius);
+    overflow-x: auto;
+    font-size: 13px;
+    margin: 8px 0;
+  }
+  .assistant-msg table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  .assistant-msg th, .assistant-msg td {
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+  }
+  .assistant-msg th {
+    background-color: var(--bg-app);
+    font-weight: 600;
+  }
+  
+  .chip:hover {
+    border-color: var(--accent) !important;
+    background-color: var(--accent-transparent) !important;
+    color: var(--accent) !important;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.4;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 1;
+    }
+  }
+
+  .pulse-dot {
+    display: inline-block;
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const chatMessages = document.getElementById("chatMessages");
+    const chatForm = document.getElementById("chatForm");
+    const chatInput = document.getElementById("chatInput");
+    const chatLoader = document.getElementById("chatLoader");
+    const clearChatBtn = document.getElementById("clearChatBtn");
+    const suggestionChips = document.querySelectorAll("#suggestionChips .chip");
+
+    // Array to store active message history: {"role": "user"|"model", "text": "..."}
+    let chatHistory = [];
+
+    // Helper: Scroll to bottom
+    const scrollToBottom = () => {
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    // Helper: Add user message bubble
+    const addUserMessage = (text) => {
+      const msgHTML = `
+        <div class="chat-message-container user-msg" style="display: flex; gap: 12px; max-width: 80%; align-self: flex-end; flex-direction: row-reverse;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background-color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;">
+            <i data-lucide="user" style="width: 16px; height: 16px;"></i>
+          </div>
+          <div style="background-color: var(--accent-transparent); border: 1px solid var(--accent); border-radius: 16px 0 16px 16px; padding: 12px 16px; color: var(--text-primary); font-size: 14px; line-height: 1.5; font-weight: 500;">
+            ${escapeHTML(text)}
+          </div>
+        </div>
+      `;
+      chatMessages.insertAdjacentHTML("beforeend", msgHTML);
+      scrollToBottom();
+      lucide.createIcons();
+    };
+
+    // Helper: Add assistant message bubble (with raw HTML support)
+    const addAssistantMessage = (replyHTML) => {
+      const msgHTML = `
+        <div class="chat-message-container assistant-msg" style="display: flex; gap: 12px; max-width: 80%; align-self: flex-start;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background-color: var(--accent-transparent); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent);">
+            <i data-lucide="bot" style="width: 16px; height: 16px;"></i>
+          </div>
+          <div class="assistant-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0 16px 16px 16px; padding: 14px 18px; color: var(--text-primary); font-size: 14px; line-height: 1.6; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            ${replyHTML}
+          </div>
+        </div>
+      `;
+      chatMessages.insertAdjacentHTML("beforeend", msgHTML);
+      scrollToBottom();
+      lucide.createIcons();
+    };
+
+    // Helper: Escape HTML helper for user messages
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
+
+    // Submit Chat Logic
+    const sendQuery = async (queryText) => {
+      if (!queryText.trim()) return;
+
+      // Add to display
+      addUserMessage(queryText);
+      chatInput.value = "";
+
+      // Show loader
+      chatLoader.style.display = "flex";
+      scrollToBottom();
+
+      try {
+        const response = await fetch("{% url 'tutor_chat_api' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+          },
+          body: JSON.stringify({
+            message: queryText,
+            history: chatHistory
+          })
+        });
+
+        const data = await response.json();
+        chatLoader.style.display = "none";
+
+        if (response.ok) {
+          addAssistantMessage(data.reply_html);
+          
+          // Save to local history
+          chatHistory.push({ role: "user", text: queryText });
+          chatHistory.push({ role: "model", text: data.reply });
+        } else {
+          addAssistantMessage(`<div style="color: var(--error);">Error: ${data.error || 'Failed to get response.'}</div>`);
+        }
+      } catch (err) {
+        chatLoader.style.display = "none";
+        addAssistantMessage('<div style="color: var(--error);">Error: Failed to reach the assistant server.</div>');
+        console.error(err);
+      }
+      scrollToBottom();
+    };
+
+    // Form submission
+    chatForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      sendQuery(chatInput.value);
+    });
+
+    // Suggestion chips
+    suggestionChips.forEach(chip => {
+      chip.addEventListener("click", () => {
+        sendQuery(chip.dataset.query);
+      });
+    });
+
+    // Clear chat
+    clearChatBtn.addEventListener("click", () => {
+      chatHistory = [];
+      // Remove all custom messages except the first welcome one
+      const messages = chatMessages.querySelectorAll(".chat-message-container");
+      for (let i = 1; i < messages.length; i++) {
+        messages[i].remove();
+      }
+    });
+  });
+</script>
+{% endblock %}

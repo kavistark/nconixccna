@@ -1,0 +1,69 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Additional Topics</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">{{ topic.title }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="lesson-card">
+  <span class="lesson-meta-tag" style="background-color: var(--accent); color: white;">ADDITIONAL STUDY TOPIC</span>
+  <h2 class="lesson-title" style="margin-top: 10px;">{{ topic.title }}</h2>
+
+  <div class="lesson-body" style="margin-top: 30px; line-height: 1.8; font-size: 15px; color: var(--text-primary);">
+    {{ parsed_content|safe }}
+  </div>
+
+  {% if topic.image1 or topic.image2 or topic.image3 %}
+    <div style="margin-top: 50px; border-top: 1px solid var(--border-color); padding-top: 30px;">
+      <h4 style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+        <i data-lucide="image" style="width: 20px; height: 20px;"></i>
+        Reference Images & Diagrams
+      </h4>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+        {% if topic.image1 %}
+          <div class="image-gallery-item" style="border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--bg-card); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.2)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';">
+            <a href="{{ topic.image1.url }}" target="_blank" style="display: block; cursor: zoom-in;">
+              <img src="{{ topic.image1.url }}" alt="Reference Image 1" style="width: 100%; height: 200px; object-fit: contain; background-color: rgba(0,0,0,0.05); display: block;">
+            </a>
+            <div style="padding: 12px; font-size: 12px; color: var(--text-secondary); border-top: 1px solid var(--border-color); text-align: center; font-weight: 600;">
+              Diagram 1 (Click to view full size)
+            </div>
+          </div>
+        {% endif %}
+
+        {% if topic.image2 %}
+          <div class="image-gallery-item" style="border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--bg-card); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.2)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';">
+            <a href="{{ topic.image2.url }}" target="_blank" style="display: block; cursor: zoom-in;">
+              <img src="{{ topic.image2.url }}" alt="Reference Image 2" style="width: 100%; height: 200px; object-fit: contain; background-color: rgba(0,0,0,0.05); display: block;">
+            </a>
+            <div style="padding: 12px; font-size: 12px; color: var(--text-secondary); border-top: 1px solid var(--border-color); text-align: center; font-weight: 600;">
+              Diagram 2 (Click to view full size)
+            </div>
+          </div>
+        {% endif %}
+
+        {% if topic.image3 %}
+          <div class="image-gallery-item" style="border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--bg-card); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.2)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';">
+            <a href="{{ topic.image3.url }}" target="_blank" style="display: block; cursor: zoom-in;">
+              <img src="{{ topic.image3.url }}" alt="Reference Image 3" style="width: 100%; height: 200px; object-fit: contain; background-color: rgba(0,0,0,0.05); display: block;">
+            </a>
+            <div style="padding: 12px; font-size: 12px; color: var(--text-secondary); border-top: 1px solid var(--border-color); text-align: center; font-weight: 600;">
+              Diagram 3 (Click to view full size)
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div style="margin-top: 40px; display: flex; justify-content: flex-start; border-top: 1px solid var(--border-color); padding-top: 24px;">
+    <a href="{% url 'dashboard' %}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary);">
+      <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 8px;"></i>
+      Back to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

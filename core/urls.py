@@ -16,4 +16,10 @@ urlpatterns = [
     path('mock-exam/', views.mock_exam_setup_view, name='mock_exam_setup'),
     path('mock-exam/active/', views.mock_exam_active_view, name='mock_exam_active'),
     path('mock-exam/submit/', views.mock_exam_submit_view, name='mock_exam_submit'),
+    
+    path('additional-topic/<int:topic_id>/', views.additional_topic_detail_view, name='additional_topic_detail'),
+    
+    path('tutor/', views.tutor_bot_view, name='tutor_bot'),
+    path('tutor/chat/', views.tutor_chat_api, name='tutor_chat_api'),
 ]
+

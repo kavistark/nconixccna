@@ -1,0 +1,41 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">Admin Panel</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-root"><a href="{% url 'admin_additional_topics' %}" style="text-decoration: none; color: inherit;">Additional Topics</a></span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Delete Topic</span>
+{% endblock %}
+
+{% block content %}
+<div class="exam-setup-card" style="max-width: 500px; margin: 40px auto; text-align: center; padding: 40px 24px; border: 1px solid var(--error);">
+  <i data-lucide="alert-triangle" style="width: 56px; height: 56px; color: var(--error); margin-bottom: 16px;"></i>
+  
+  <h2 class="exam-setup-title" style="color: var(--error);">Delete Additional Topic?</h2>
+  
+  <p class="exam-setup-desc" style="margin-top: 15px; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+    Are you sure you want to permanently delete the topic: <strong>{{ topic.title }}</strong>?
+  </p>
+  
+  <div style="background-color: rgba(239, 68, 68, 0.05); border-radius: var(--radius); padding: 16px; margin: 24px 0; text-align: left; font-size: 13px; line-height: 1.5; color: var(--text-muted); border: 1px dashed var(--error);">
+    <strong>Warning:</strong> Deleting this topic will permanently erase:
+    <ul style="margin-left: 20px; margin-top: 8px;">
+      <li>The lesson content and paragraph data.</li>
+      <li>All attached images and assets.</li>
+      <li>Access to this topic for all students.</li>
+    </ul>
+    This action is irreversible.
+  </div>
+
+  <form method="POST">
+    {% csrf_token %}
+    <div style="display: flex; gap: 16px; margin-top: 30px;">
+      <a href="{% url 'admin_additional_topics' %}" class="btn" style="flex: 1; text-decoration: none;">Cancel</a>
+      <button type="submit" class="btn" style="flex: 1; font-weight: 600; background-color: var(--error); border-color: var(--error); color: white;">
+        Permanently Delete
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
