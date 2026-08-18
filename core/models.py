@@ -116,3 +116,15 @@ class AdditionalTopic(models.Model):
         return self.title
 
 
+class WhiteboardStroke(models.Model):
+    data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Stroke {self.id} at {self.created_at}"
+
+
+

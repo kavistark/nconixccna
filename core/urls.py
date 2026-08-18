@@ -21,5 +21,9 @@ urlpatterns = [
     
     path('tutor/', views.tutor_bot_view, name='tutor_bot'),
     path('tutor/chat/', views.tutor_chat_api, name='tutor_chat_api'),
+    
+    path('board/send-event/', views.board_send_event_api, name='board_send_event'),
+    path('board/history/', views.board_history_api, name='board_history'),
 ]
+
 

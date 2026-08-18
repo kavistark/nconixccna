@@ -10,7 +10,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db.models import Avg, Sum
-from core.models import Domain, Topic, Question, UserProgress, MockExamResult, AdditionalTopic
+from core.models import Domain, Topic, Question, UserProgress, MockExamResult, AdditionalTopic, WhiteboardStroke
 from core.decorators import admin_required
 
 # --- Helper: Markdown to HTML Parser ---
@@ -583,6 +583,74 @@ def tutor_chat_api(request):
             return JsonResponse({'error': f"Failed to parse response: {str(e)}"}, status=500)
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+from django.views.decorators.csrf import csrf_exempt
+import pusher
+
+@csrf_exempt
+@login_required
+def board_send_event_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        app_id = getattr(settings, 'PUSHER_APP_ID', '')
+        key = getattr(settings, 'PUSHER_KEY', '')
+        secret = getattr(settings, 'PUSHER_SECRET', '')
+        cluster = getattr(settings, 'PUSHER_CLUSTER', 'ap2')
+        ssl = getattr(settings, 'PUSHER_SSL', True)
+
+        if not (app_id and key and secret):
+            return JsonResponse({'error': 'Pusher is not configured.'}, status=500)
+
+        pusher_client = pusher.Pusher(
+            app_id=app_id,
+            key=key,
+            secret=secret,
+            cluster=cluster,
+            ssl=ssl
+        )
+
+        packet_type = data.get('type')
+        
+        # Save persistent data in the database
+        if packet_type == 'clear':
+            WhiteboardStroke.objects.all().delete()
+        elif packet_type == 'undo':
+            stroke_id = data.get('strokeId')
+            if stroke_id:
+                WhiteboardStroke.objects.filter(data__strokeId=stroke_id).delete()
+        elif packet_type == 'batch':
+            segments = data.get('segments', [])
+            strokes_to_create = []
+            for seg in segments:
+                strokes_to_create.append(WhiteboardStroke(data=seg))
+            if strokes_to_create:
+                WhiteboardStroke.objects.bulk_create(strokes_to_create)
+        elif packet_type == 'pointer':
+            pass
+        else:
+            WhiteboardStroke.objects.create(data=data)
+
+        # Broadcast event via Pusher
+        try:
+            pusher_client.trigger('whiteboard-channel', 'drawing-event', data)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'error': f"Failed to publish to Pusher: {str(e)}"}, status=500)
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@login_required
+def board_history_api(request):
+    strokes = WhiteboardStroke.objects.all().order_by('created_at')
+    history = [s.data for s in strokes]
+    return JsonResponse({'history': history})
+
 
 
 

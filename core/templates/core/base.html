@@ -11,6 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Lucide Icons via CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Pusher Client Library -->
+  <script src="https://js.pusher.com/8.0.1/pusher.min.js"></script>
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="{% static 'core/styles.css' %}">
   
@@ -666,8 +668,9 @@
         let startX = 0;
         let startY = 0;
         let savedSnapshot = null;
-        let boardSocket = null;
-        let reconnectInterval = null;
+        let pusher = null;
+        let boardChannel = null;
+        let pendingSegments = [];
 
         // Viewport and History State Variables
         let localHistory = [];
@@ -679,38 +682,41 @@
         let showGrid = false;
         const imageCache = {};
 
-        // Establish WebSocket Connection
-        function connectWebSocket() {
-          const wsScheme = window.location.protocol === "https:" ? "wss://" : "ws://";
-          const wsUrl = wsScheme + window.location.hostname + ":8001";
-          
-          boardSocket = new WebSocket(wsUrl);
+        // Establish Pusher Connection
+        function connectPusher() {
+          pusher = new Pusher('8d8e3c9153f04211a88c', {
+            cluster: 'ap2',
+            forceTLS: true
+          });
 
-          boardSocket.onopen = () => {
-            statusText.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background-color: var(--success); border-radius: 50%;"></span> Live`;
-            statusText.style.color = "var(--success)";
-            if (reconnectInterval) {
-              clearInterval(reconnectInterval);
-              reconnectInterval = null;
+          boardChannel = pusher.subscribe('whiteboard-channel');
+
+          boardChannel.bind('drawing-event', function(data) {
+            if (data.type === "batch") {
+              data.segments.forEach(seg => {
+                localHistory.push(seg);
+                drawItem(seg);
+              });
+              if (!isBoardAdmin && boardDrawer && !boardDrawer.classList.contains("open") && boardBadge) {
+                boardBadge.style.display = "block";
+              }
+            } else {
+              handleBoardMessage(data);
             }
-          };
+          });
 
-          boardSocket.onclose = () => {
-            statusText.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background-color: var(--error); border-radius: 50%;"></span> Reconnecting...`;
-            statusText.style.color = "var(--text-muted)";
-            if (!reconnectInterval) {
-              reconnectInterval = setInterval(connectWebSocket, 3000);
-            }
-          };
+          fetch('/board/history/')
+            .then(res => res.json())
+            .then(data => {
+              if (data.history) {
+                localHistory = data.history;
+                redrawCanvas();
+              }
+            })
+            .catch(err => console.error("Error loading board history: ", err));
 
-          boardSocket.onerror = (err) => {
-            console.error("Whiteboard socket error: ", err);
-          };
-
-          boardSocket.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            handleBoardMessage(data);
-          };
+          statusText.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background-color: var(--success); border-radius: 50%;"></span> Live (Pusher)`;
+          statusText.style.color = "var(--success)";
         }
 
         // Message processor
@@ -945,7 +951,19 @@
         }
 
         // Initialize connection
-        connectWebSocket();
+        connectPusher();
+
+        // Batch coordinate sender loop
+        setInterval(() => {
+          if (pendingSegments.length > 0) {
+            const batchToSend = [...pendingSegments];
+            pendingSegments = [];
+            sendBoardDataRaw({
+              type: "batch",
+              segments: batchToSend
+            });
+          }
+        }, 150);
 
         // Toggle board open
         if (toolBoardBtn) {
@@ -1042,9 +1060,26 @@
           }
 
           function sendBoardData(data) {
-            if (boardSocket && boardSocket.readyState === WebSocket.OPEN) {
-              boardSocket.send(JSON.stringify(data));
+            if (data.type === "draw") {
+              pendingSegments.push(data);
+            } else {
+              sendBoardDataRaw(data);
             }
+          }
+
+          function sendBoardDataRaw(data) {
+            fetch('/board/send-event/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+              },
+              body: JSON.stringify(data)
+            })
+            .then(res => {
+              if (!res.ok) console.error("Failed to send board event: ", res.status);
+            })
+            .catch(err => console.error("Error sending board event: ", err));
           }
 
           // Main canvas listeners
