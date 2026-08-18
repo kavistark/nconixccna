@@ -8,10 +8,18 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db.models import Avg, Sum
 from core.models import Domain, Topic, Question, UserProgress, MockExamResult, AdditionalTopic, WhiteboardStroke
 from core.decorators import admin_required
+
+try:
+    import pusher as pusher_lib
+    PUSHER_AVAILABLE = True
+except ImportError:
+    pusher_lib = None
+    PUSHER_AVAILABLE = False
 
 # --- Helper: Markdown to HTML Parser ---
 def parse_markdown(text):
@@ -585,9 +593,6 @@ def tutor_chat_api(request):
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
-from django.views.decorators.csrf import csrf_exempt
-import pusher
-
 @csrf_exempt
 @login_required
 def board_send_event_api(request):
@@ -596,6 +601,9 @@ def board_send_event_api(request):
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        if not PUSHER_AVAILABLE:
+            return JsonResponse({'error': 'Pusher library is not installed on this server.'}, status=500)
 
         app_id = getattr(settings, 'PUSHER_APP_ID', '')
         key = getattr(settings, 'PUSHER_KEY', '')
@@ -606,7 +614,7 @@ def board_send_event_api(request):
         if not (app_id and key and secret):
             return JsonResponse({'error': 'Pusher is not configured.'}, status=500)
 
-        pusher_client = pusher.Pusher(
+        pusher_client = pusher_lib.Pusher(
             app_id=app_id,
             key=key,
             secret=secret,
@@ -615,7 +623,7 @@ def board_send_event_api(request):
         )
 
         packet_type = data.get('type')
-        
+
         # Save persistent data in the database
         if packet_type == 'clear':
             WhiteboardStroke.objects.all().delete()
@@ -625,13 +633,11 @@ def board_send_event_api(request):
                 WhiteboardStroke.objects.filter(data__strokeId=stroke_id).delete()
         elif packet_type == 'batch':
             segments = data.get('segments', [])
-            strokes_to_create = []
-            for seg in segments:
-                strokes_to_create.append(WhiteboardStroke(data=seg))
+            strokes_to_create = [WhiteboardStroke(data=seg) for seg in segments]
             if strokes_to_create:
                 WhiteboardStroke.objects.bulk_create(strokes_to_create)
         elif packet_type == 'pointer':
-            pass
+            pass  # pointer events are not persisted
         else:
             WhiteboardStroke.objects.create(data=data)
 
