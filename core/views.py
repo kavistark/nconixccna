@@ -540,9 +540,9 @@ def tutor_chat_api(request):
         
         response = None
         used_model = model_name
-        fallback_models = ['gemini-3.6-flash']
+        fallback_models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash']
 
-        for model in [model_name] + fallback_models:
+        for model in [model_name] + [m for m in fallback_models if m != model_name]:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             payload = {
                 "contents": contents,

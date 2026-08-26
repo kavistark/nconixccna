@@ -50,7 +50,7 @@
         <span class="domain-score">{{ domain.progress_percent }}% Ready</span>
       </div>
       <div class="domain-progress-bar">
-        <div class="domain-progress-fill" style="width: {{ domain.progress_percent }}%"></div>
+        <div class="domain-progress-fill" style="--progress: {{ domain.progress_percent }}%;"></div>
       </div>
       <div class="domain-meta">
         <span>{{ domain.completed_steps }}/{{ domain.total_steps }} steps</span>
@@ -58,7 +58,7 @@
       </div>
     </div>
   {% endfor %}
-</div>
+</div>C:\Users\MrHat\ccna\core\admin.py
 
 <!-- Actions Container -->
 <div style="margin-top: 40px; display: flex; gap: 16px; flex-wrap: wrap;">

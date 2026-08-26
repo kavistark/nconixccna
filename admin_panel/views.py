@@ -68,7 +68,8 @@ def admin_create_student_view(request):
             unlock_all = request.POST.get('unlock_all_topics') == 'true'
             allowed_topics_post = request.POST.getlist('allowed_topics')
             
-            profile = user.profile
+            from core.models import UserProfile
+            profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = 'student'
             profile.unlock_all_topics = unlock_all
             profile.allowed_topics = [int(tid) for tid in allowed_topics_post if tid.isdigit()]
@@ -109,7 +110,8 @@ def admin_edit_student_view(request, student_id):
                 student.set_password(new_pass)
             student.save()
             
-            profile = student.profile
+            from core.models import UserProfile
+            profile, _ = UserProfile.objects.get_or_create(user=student)
             profile.unlock_all_topics = unlock_all
             profile.allowed_topics = [int(tid) for tid in allowed_topics_post if tid.isdigit()]
             profile.save()
@@ -233,8 +235,8 @@ def admin_additional_topics_list_view(request):
 @admin_required
 def admin_additional_topic_add_view(request):
     if request.method == 'POST':
-        title = request.POST.get('title')
-        content = request.POST.get('content')
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
         image1 = request.FILES.get('image1')
         image2 = request.FILES.get('image2')
         image3 = request.FILES.get('image3')
@@ -267,28 +269,29 @@ def admin_additional_topic_add_view(request):
 def admin_additional_topic_edit_view(request, topic_id):
     topic = get_object_or_404(AdditionalTopic, id=topic_id)
     if request.method == 'POST':
-        title = request.POST.get('title')
-        content = request.POST.get('content')
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
         
-        # Check files
-        if 'image1' in request.FILES:
-            topic.image1 = request.FILES.get('image1')
-        if 'image2' in request.FILES:
-            topic.image2 = request.FILES.get('image2')
-        if 'image3' in request.FILES:
-            topic.image3 = request.FILES.get('image3')
-
-        # Check for image deletions
-        if request.POST.get('delete_image1') == 'true':
-            topic.image1 = None
-        if request.POST.get('delete_image2') == 'true':
-            topic.image2 = None
-        if request.POST.get('delete_image3') == 'true':
-            topic.image3 = None
-
         if title and content:
             topic.title = title
             topic.content = content
+            
+            # Check files
+            if 'image1' in request.FILES:
+                topic.image1 = request.FILES.get('image1')
+            if 'image2' in request.FILES:
+                topic.image2 = request.FILES.get('image2')
+            if 'image3' in request.FILES:
+                topic.image3 = request.FILES.get('image3')
+
+            # Check for image deletions
+            if request.POST.get('delete_image1') == 'true':
+                topic.image1 = None
+            if request.POST.get('delete_image2') == 'true':
+                topic.image2 = None
+            if request.POST.get('delete_image3') == 'true':
+                topic.image3 = None
+
             topic.save()
             return redirect('admin_additional_topics')
         else:

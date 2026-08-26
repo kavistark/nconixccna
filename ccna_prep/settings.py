@@ -127,7 +127,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = 'login'
 
 # Gemini API Settings
-GEMINI_API_KEY = "AIzaSyBE1x0eo9hrhlr9WgxUBV3Ek-MK39eYR1M"
+GEMINI_API_KEY = "AQ.Ab8RN6Knzwedci6baVJHSl3rkwt3dH9AwiRC7q1l0bs2NjLuGA"
 GEMINI_MODEL = "gemini-3.7-flash"
 
 # Pusher Settings

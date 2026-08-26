@@ -62,10 +62,15 @@ def start_server():
     asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(main())
+    except OSError as e:
+        if getattr(e, 'winerror', None) == 10048 or getattr(e, 'errno', None) == 10048:
+            logger.info("Whiteboard WebSocket server already active on port 8001.")
+        else:
+            logger.error(f"WebSocket server socket error: {e}")
     except Exception as e:
         logger.error(f"WebSocket server main loop failed: {e}")
 
 def start_server_thread():
     thread = threading.Thread(target=start_server, daemon=True)
     thread.start()
-    logger.info("WebSocket Whiteboard Server started on port 8001.")
+
