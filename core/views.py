@@ -28,9 +28,9 @@ def parse_markdown(text):
     html = text
     
     # Headers
-    html = re.sub(r'### (.*)', r'<h3>\1</h3>', html)
-    html = re.sub(r'## (.*)', r'<h2>\1</h2>', html)
-    html = re.sub(r'# (.*)', r'<h1>\1</h1>', html)
+    html = re.sub(r'^### (.*)', r'<h3>\1</h3>', html, flags=re.MULTILINE)
+    html = re.sub(r'^## (.*)', r'<h2>\1</h2>', html, flags=re.MULTILINE)
+    html = re.sub(r'^# (.*)', r'<h1>\1</h1>', html, flags=re.MULTILINE)
     
     # Code blocks
     html = re.sub(r'```cisco([\s\S]*?)```', r'<pre class="cisco-code">\1</pre>', html)
