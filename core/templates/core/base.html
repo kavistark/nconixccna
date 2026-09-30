@@ -68,7 +68,7 @@
             {% for domain in sidebar_domains %}
               <div class="nav-section-title">{{ domain.name|upper }}</div>
               {% for topic in domain.topics %}
-                <div class="chapter-item {% if active_page == 'lesson' or active_page == 'quiz' %}{% if topic.id == current_topic_id %}expanded{% endif %}{% endif %}" id="chapter-{{ topic.id }}" data-title="{{ topic.title }}">
+                <div class="chapter-item {% if active_page == 'lesson' or active_page == 'quiz' or active_page == 'recording_session' %}{% if topic.id == current_topic_id %}expanded{% endif %}{% endif %}" id="chapter-{{ topic.id }}" data-title="{{ topic.title }}">
                   <div class="chapter-header">
                     <div class="chapter-title-container">
                       <span class="chapter-number">{{ topic.id }}</span>
@@ -88,6 +88,9 @@
                       <div class="nav-sub-item disabled-nav-item" style="opacity: 0.4; cursor: not-allowed; pointer-events: none; padding-left: 20px;">
                         <span><i data-lucide="lock" class="sub-item-icon"></i>Practice Quiz (Locked)</span>
                       </div>
+                      <div class="nav-sub-item disabled-nav-item" style="opacity: 0.4; cursor: not-allowed; pointer-events: none; padding-left: 20px;">
+                        <span><i data-lucide="lock" class="sub-item-icon"></i>Recorded Session (Locked)</span>
+                      </div>
                     {% else %}
                       <a href="{% url 'lesson' topic.id %}" class="nav-sub-item {% if active_page == 'lesson' and topic.id == current_topic_id %}active{% endif %} {% if topic.lesson_completed %}completed{% endif %}" id="nav-lesson-{{ topic.id }}">
                         <span><i data-lucide="book-open" class="sub-item-icon"></i>Study Lesson</span>
@@ -96,6 +99,12 @@
                       <a href="{% url 'quiz' topic.id %}" class="nav-sub-item {% if active_page == 'quiz' and topic.id == current_topic_id %}active{% endif %} {% if topic.quiz_completed %}completed{% endif %}" id="nav-quiz-{{ topic.id }}">
                         <span><i data-lucide="help-circle" class="sub-item-icon"></i>Practice Quiz</span>
                         <i data-lucide="check" class="nav-check"></i>
+                      </a>
+                      <a href="{% url 'recording_session' topic.id %}" class="nav-sub-item {% if active_page == 'recording_session' and topic.id == current_topic_id %}active{% endif %}" id="nav-recording-{{ topic.id }}">
+                        <span><i data-lucide="video" class="sub-item-icon"></i>Recorded Session</span>
+                        {% if topic.video_url %}
+                          <span title="Video available" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; margin-left: auto;"></span>
+                        {% endif %}
                       </a>
                     {% endif %}
                   </div>
@@ -326,12 +335,136 @@
   </div>
   {% endif %}
 
+  <!-- Add / Update Recording Video Modal -->
+  <div class="custom-modal-backdrop" id="recordingModalBackdrop" style="display:none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="custom-modal" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); width: 100%; max-width: 540px; box-shadow: var(--shadow-lg); overflow: hidden; animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="video" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div>
+            <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: var(--text-primary);">Chapter Video Recording</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 2px 0 0 0;">Add or update YouTube recording session link</p>
+          </div>
+        </div>
+        <button type="button" class="drawer-close" id="closeRecordingModalBtn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:20px; display:flex; align-items:center;">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="saveRecordingForm" method="POST" action="{% url 'save_recording' %}" style="padding: 24px;">
+        {% csrf_token %}
+        
+        <!-- Chapter Dropdown -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="modalChapterSelect" style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+            Select Chapter / Topic <span style="color: var(--accent);">*</span>
+          </label>
+          <select id="modalChapterSelect" name="topic_id" required class="form-control" style="width: 100%; padding: 12px 14px; background: var(--bg-app); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;">
+            <option value="" disabled selected>-- Choose a chapter to attach recording --</option>
+            {% for domain in sidebar_domains %}
+              <optgroup label="{{ domain.name }}">
+                {% for topic in domain.topics %}
+                  <option value="{{ topic.id }}" {% if current_topic_id == topic.id %}selected{% endif %}>Chapter {{ topic.id }}: {{ topic.title }}</option>
+                {% endfor %}
+              </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- YouTube URL Input -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="modalVideoUrl" style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+            YouTube Video Link <span style="color: var(--accent);">*</span>
+          </label>
+          <div style="position: relative;">
+            <input type="url" id="modalVideoUrl" name="video_url" required class="form-control" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." style="width: 100%; padding: 12px 14px; padding-left: 40px; background: var(--bg-app); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;">
+            <i data-lucide="link" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-muted); pointer-events: none;"></i>
+          </div>
+          <small style="display: block; margin-top: 6px; font-size: 12px; color: var(--text-secondary);">
+            Paste any YouTube video or live URL. It will automatically play in the Recording Session page.
+          </small>
+        </div>
+
+        <!-- Submit & Action Buttons -->
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+          <button type="button" class="btn" id="cancelRecordingModalBtn" style="border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); padding: 10px 18px;">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" id="saveRecordingSubmitBtn" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;">
+            <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+            <span>Save & Open Recording</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Backdrop overlay -->
   <div class="backdrop" id="backdrop"></div>
 
-  <!-- Shared JavaScript Logic (Theme, Drawers, Calculator, Cisco CLI) -->
+  <!-- Shared JavaScript Logic (Theme, Drawers, Calculator, Cisco CLI, Recording Modal) -->
   <script>
+    // --- Global Video Recording Modal Handler ---
+    window.openRecordingModal = function(preselectedTopicId) {
+      const backdrop = document.getElementById('recordingModalBackdrop');
+      const chapterSelect = document.getElementById('modalChapterSelect');
+      const videoInput = document.getElementById('modalVideoUrl');
+      
+      if (preselectedTopicId && chapterSelect) {
+        chapterSelect.value = preselectedTopicId;
+        fetchTopicVideoInfo(preselectedTopicId);
+      } else if (chapterSelect && chapterSelect.value) {
+        fetchTopicVideoInfo(chapterSelect.value);
+      }
+      
+      if (backdrop) {
+        backdrop.style.display = 'flex';
+        lucide.createIcons();
+      }
+    };
+
+    window.closeRecordingModal = function() {
+      const backdrop = document.getElementById('recordingModalBackdrop');
+      if (backdrop) backdrop.style.display = 'none';
+    };
+
+    function fetchTopicVideoInfo(topicId) {
+      if (!topicId) return;
+      fetch(`/api/topic/${topicId}/video/`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const videoInput = document.getElementById('modalVideoUrl');
+            if (videoInput && data.video_url) {
+              videoInput.value = data.video_url;
+            }
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
+      // Chapter dropdown change listener
+      const chapterSelect = document.getElementById('modalChapterSelect');
+      if (chapterSelect) {
+        chapterSelect.addEventListener('change', (e) => {
+          fetchTopicVideoInfo(e.target.value);
+        });
+      }
+
+      const closeRecBtn = document.getElementById('closeRecordingModalBtn');
+      const cancelRecBtn = document.getElementById('cancelRecordingModalBtn');
+      const recBackdrop = document.getElementById('recordingModalBackdrop');
+
+      if (closeRecBtn) closeRecBtn.addEventListener('click', closeRecordingModal);
+      if (cancelRecBtn) cancelRecBtn.addEventListener('click', closeRecordingModal);
+      if (recBackdrop) {
+        recBackdrop.addEventListener('click', (e) => {
+          if (e.target === recBackdrop) closeRecordingModal();
+        });
+      }
       // --- Lucide Icons ---
       lucide.createIcons();
 

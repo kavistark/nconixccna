@@ -17,9 +17,9 @@ class DomainAdmin(admin.ModelAdmin):
 
 @admin.register(Topic)
 class TopicAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'domain')
+    list_display = ('id', 'title', 'domain', 'video_url')
     list_filter = ('domain',)
-    search_fields = ('title', 'lesson_content')
+    search_fields = ('title', 'lesson_content', 'video_url')
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):

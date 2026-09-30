@@ -13,6 +13,10 @@ urlpatterns = [
     path('quiz/<int:topic_id>/', views.quiz_view, name='quiz'),
     path('quiz/<int:topic_id>/submit/', views.quiz_submit_view, name='quiz_submit'),
     
+    path('recording/<int:topic_id>/', views.recording_session_view, name='recording_session'),
+    path('save-recording/', views.save_recording_view, name='save_recording'),
+    path('api/topic/<int:topic_id>/video/', views.api_get_topic_video, name='api_get_topic_video'),
+    
     path('mock-exam/', views.mock_exam_setup_view, name='mock_exam_setup'),
     path('mock-exam/active/', views.mock_exam_active_view, name='mock_exam_active'),
     path('mock-exam/submit/', views.mock_exam_submit_view, name='mock_exam_submit'),

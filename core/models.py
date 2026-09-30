@@ -14,6 +14,7 @@ class Topic(models.Model):
     title = models.CharField(max_length=200)
     objectives = models.JSONField(default=list)  # list of strings
     lesson_content = models.TextField()  # markdown
+    video_url = models.CharField(max_length=500, blank=True, default='')  # YouTube video link
 
     class Meta:
         ordering = ['id']

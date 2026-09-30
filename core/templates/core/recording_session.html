@@ -1,0 +1,185 @@
+{% extends 'core/base.html' %}
+
+{% block breadcrumbs %}
+  <span class="breadcrumb-root">{{ topic.domain.name }}</span>
+  <span class="breadcrumb-separator"><i data-lucide="chevron-right"></i></span>
+  <span class="breadcrumb-current">Chapter {{ topic.id }}: {{ topic.title }} (Recording)</span>
+{% endblock %}
+
+{% block content %}
+<div class="lesson-card">
+  <!-- Top Chapter Header & Meta -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+    <div>
+      <span class="lesson-meta-tag">{{ topic.domain.name }}</span>
+      <h2 class="lesson-title" style="margin-top: 8px;">Chapter {{ topic.id }}: {{ topic.title }}</h2>
+    </div>
+    
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      {% if has_video %}
+        <a href="{{ topic.video_url }}" target="_blank" rel="noopener noreferrer" class="btn" style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; padding: 8px 14px; text-decoration: none;">
+          <i data-lucide="external-link" style="width: 14px; height: 14px; color: #ef4444;"></i>
+          <span>Open YouTube</span>
+        </a>
+      {% endif %}
+      {% if user.is_superuser or user.is_staff or user.profile.role == 'admin' %}
+        <button type="button" class="btn" onclick="openRecordingModalForTopic({{ topic.id }})" style="display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; padding: 8px 14px;">
+          <i data-lucide="edit-3" style="width: 15px; height: 15px; color: var(--accent);"></i>
+          <span>{% if has_video %}Change Video Link{% else %}Add Video Link{% endif %}</span>
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Chapter Navigation Tabs (Study Lesson | Practice Quiz | Recorded Session) -->
+  <div class="chapter-nav-tabs" style="display: flex; gap: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 28px; padding-bottom: 8px;">
+    <a href="{% url 'lesson' topic.id %}" class="chapter-tab-link" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--text-secondary); background: transparent; transition: all 0.2s ease;">
+      <i data-lucide="book-open" style="width: 16px; height: 16px;"></i>
+      <span>Study Lesson</span>
+    </a>
+    <a href="{% url 'quiz' topic.id %}" class="chapter-tab-link" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--text-secondary); background: transparent; transition: all 0.2s ease;">
+      <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i>
+      <span>Practice Quiz</span>
+    </a>
+    <a href="{% url 'recording_session' topic.id %}" class="chapter-tab-link active" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; color: #fff; background: var(--accent); box-shadow: var(--shadow-glow); transition: all 0.2s ease;">
+      <i data-lucide="video" style="width: 16px; height: 16px;"></i>
+      <span>Recorded Session</span>
+    </a>
+  </div>
+
+  <!-- Video Section -->
+  {% if has_video and embed_url %}
+    <div class="video-player-wrapper" style="margin-bottom: 30px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); background: #000; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);">
+      <!-- 16:9 Responsive Video Frame -->
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000;">
+        <iframe 
+          id="ytPlayerIframe"
+          src="{{ embed_url }}" 
+          title="YouTube video player - Chapter {{ topic.id }}: {{ topic.title }}"
+          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen>
+        </iframe>
+      </div>
+      
+      <!-- Video Player Control & Info Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: var(--bg-card); border-top: 1px solid var(--border-color); font-size: 13px; color: var(--text-secondary); flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+            <span style="color: var(--text-primary); font-weight: 500;">Classroom Session Recording</span>
+          </div>
+          {% if video_id %}
+            <button type="button" onclick="toggleNoCookieMode('{{ video_id }}')" id="modeToggleBtn" style="background: var(--bg-app); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer;">
+              Switch to Privacy Mode
+            </button>
+          {% endif %}
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <a href="{{ topic.video_url }}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: 500;">
+            <i data-lucide="play-circle" style="width: 15px; height: 15px;"></i>
+            <span>Watch Fullscreen on YouTube</span>
+            <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="no-video-box" style="padding: 48px 24px; text-align: center; border: 2px dashed var(--border-color); border-radius: 12px; background: rgba(31, 42, 69, 0.25); margin-bottom: 30px;">
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+        <i data-lucide="video" style="width: 28px; height: 28px;"></i>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">No Recording Video Available Yet</h3>
+      <p style="font-size: 14px; color: var(--text-secondary); max-width: 480px; margin: 0 auto 20px auto; line-height: 1.6;">
+        {% if user.is_superuser or user.is_staff or user.profile.role == 'admin' %}
+          Attach a YouTube classroom recording or tutorial video to Chapter {{ topic.id }} so students can watch and learn directly on this page.
+        {% else %}
+          The classroom recording for Chapter {{ topic.id }} has not been uploaded yet. Please check back later or study the lesson notes.
+        {% endif %}
+      </p>
+      {% if user.is_superuser or user.is_staff or user.profile.role == 'admin' %}
+        <button type="button" class="btn btn-primary" onclick="openRecordingModalForTopic({{ topic.id }})" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;">
+          <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+          <span>Add Video Link for Chapter {{ topic.id }}</span>
+        </button>
+      {% else %}
+        <a href="{% url 'lesson' topic.id %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; text-decoration: none;">
+          <i data-lucide="book-open" style="width: 16px; height: 16px;"></i>
+          <span>Read Study Lesson</span>
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Exam Objectives Covered Box -->
+  <div class="objectives-box">
+    <h4><i data-lucide="target"></i> Exam Objectives Covered in Chapter {{ topic.id }}</h4>
+    <ul class="objectives-list">
+      {% for obj in topic.objectives %}
+        <li>{{ obj }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Bottom Navigation Actions -->
+  <div class="lesson-actions" style="margin-top: 40px; display: flex; gap: 16px; justify-content: space-between; flex-wrap: wrap;">
+    <div>
+      {% if prev_id %}
+        <a href="{% url 'recording_session' prev_id %}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary);">
+          <i data-lucide="chevron-left" style="width: 16px; height: 16px; margin-right: 6px;"></i> Prev Recording (Ch. {{ prev_id }})
+        </a>
+      {% else %}
+        <button class="btn" disabled style="opacity: 0.5;">
+          <i data-lucide="chevron-left" style="width: 16px; height: 16px; margin-right: 6px;"></i> Prev Recording
+        </button>
+      {% endif %}
+    </div>
+
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <a href="{% url 'lesson' topic.id %}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary);">
+        <i data-lucide="book-open" style="width: 16px; height: 16px; margin-right: 6px;"></i> Read Lesson
+      </a>
+      <a href="{% url 'quiz' topic.id %}" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
+        <span>Practice Quiz</span>
+        <i data-lucide="arrow-right" style="width: 16px; height: 16px; margin-left: 6px;"></i>
+      </a>
+    </div>
+
+    <div>
+      {% if next_id %}
+        <a href="{% url 'recording_session' next_id %}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-primary);">
+          Next Recording (Ch. {{ next_id }}) <i data-lucide="chevron-right" style="width: 16px; height: 16px; margin-left: 6px;"></i>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let isNoCookie = false;
+  function toggleNoCookieMode(videoId) {
+    const iframe = document.getElementById('ytPlayerIframe');
+    const btn = document.getElementById('modeToggleBtn');
+    if (!iframe || !videoId) return;
+    
+    isNoCookie = !isNoCookie;
+    if (isNoCookie) {
+      iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&enablejsapi=1`;
+      btn.innerText = 'Switch to Standard Mode';
+    } else {
+      iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&enablejsapi=1`;
+      btn.innerText = 'Switch to Privacy Mode';
+    }
+  }
+
+  function openRecordingModalForTopic(topicId) {
+    if (typeof openRecordingModal === 'function') {
+      openRecordingModal(topicId);
+    }
+  }
+</script>
+{% endblock %}

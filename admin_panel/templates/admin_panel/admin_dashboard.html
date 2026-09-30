@@ -13,10 +13,16 @@
       <h2 class="lesson-title" style="margin-bottom: 6px;">Student Accounts Management</h2>
       <p class="dashboard-subtitle" style="margin-bottom: 0; font-size: 14px;">Create, update, or remove student logins and monitor study metrics.</p>
     </div>
-    <a href="{% url 'admin_create_student' %}" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
-      <i data-lucide="user-plus" style="width: 16px; height: 16px; margin-right: 8px;"></i>
-      Add New Student
-    </a>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <button type="button" class="btn" onclick="openRecordingModal()" style="display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; cursor: pointer; padding: 10px 16px; border-radius: 8px;">
+        <i data-lucide="video" style="width: 16px; height: 16px;"></i>
+        <span>Add Recording Video Link</span>
+      </button>
+      <a href="{% url 'admin_create_student' %}" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
+        <i data-lucide="user-plus" style="width: 16px; height: 16px; margin-right: 8px;"></i>
+        Add New Student
+      </a>
+    </div>
   </div>
 
   <div style="overflow-x: auto; margin-top: 20px; border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--bg-app);">

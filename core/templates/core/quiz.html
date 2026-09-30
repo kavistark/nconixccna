@@ -7,6 +7,25 @@
 {% endblock %}
 
 {% block content %}
+<!-- Chapter Navigation Tabs (Study Lesson | Practice Quiz | Recorded Session) -->
+<div class="chapter-nav-tabs" style="display: flex; gap: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 24px; padding-bottom: 8px;">
+  <a href="{% url 'lesson' topic.id %}" class="chapter-tab-link" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--text-secondary); background: transparent; transition: all 0.2s ease;">
+    <i data-lucide="book-open" style="width: 16px; height: 16px;"></i>
+    <span>Study Lesson</span>
+  </a>
+  <a href="{% url 'quiz' topic.id %}" class="chapter-tab-link active" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; color: #fff; background: var(--accent); box-shadow: var(--shadow-glow); transition: all 0.2s ease;">
+    <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i>
+    <span>Practice Quiz</span>
+  </a>
+  <a href="{% url 'recording_session' topic.id %}" class="chapter-tab-link" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--text-secondary); background: transparent; transition: all 0.2s ease;">
+    <i data-lucide="video" style="width: 16px; height: 16px;"></i>
+    <span>Recorded Session</span>
+    {% if topic.video_url %}
+      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
+    {% endif %}
+  </a>
+</div>
+
 <div id="quizContainer">
   <!-- Interactive Quiz Renders Here via JS -->
 </div>
@@ -163,6 +182,9 @@
           
           <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
             <a href="{% url 'lesson' topic.id %}" class="btn" style="text-decoration: none;">Study Lesson Again</a>
+            <a href="{% url 'recording_session' topic.id %}" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+              <i data-lucide="video" style="width: 16px; height: 16px; color: var(--accent);"></i> Watch Recording
+            </a>
             {% if topic.id < 63 %}
               <a href="{% url 'lesson' topic.id|add:1 %}" class="btn btn-primary" style="text-decoration: none;">Next Chapter</a>
             {% else %}
