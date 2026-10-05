@@ -788,8 +788,4 @@ def board_history_api(request):
     strokes = WhiteboardStroke.objects.all().order_by('created_at')
     history = [s.data for s in strokes]
     return JsonResponse({'history': history})
-
-
-
-
-
+ 

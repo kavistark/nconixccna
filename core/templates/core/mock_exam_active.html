@@ -13,10 +13,13 @@
 {% endblock %}
 
 {% block scripts %}
+<script id="mock-exam-data" type="application/json">
+  {{ questions_json|safe }}
+</script>
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    const questions = {{ questions_json|safe }};
-    let secondsRemaining = {{ seconds_remaining }};
+    const questions = JSON.parse(document.getElementById("mock-exam-data").textContent || "[]");
+    let secondsRemaining = parseInt('{{ seconds_remaining }}', 10) || 0;
     const examContainer = document.getElementById("examContainer");
     const breadcrumb = document.getElementById("examBreadcrumb");
 

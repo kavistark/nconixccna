@@ -32,9 +32,12 @@
 {% endblock %}
 
 {% block scripts %}
+<script id="quiz-data" type="application/json">
+  {{ questions_json|safe }}
+</script>
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    const questions = {{ questions_json|safe }};
+    const questions = JSON.parse(document.getElementById("quiz-data").textContent || "[]");
     const quizContainer = document.getElementById("quizContainer");
     
     let currentIndex = 0;
